@@ -2,24 +2,6 @@
 
 A Python script that fetches event data from Amplitude's EU residency API server and stores it locally as JSON files. The tool is designed to export historical event data with robust retry logic for handling transient failures. Data can be subsequently loaded into Azure Blob Storage for long-term analytics and reporting.
 
-## High-Level Architecture
-
-```mermaid
-flowchart LR
-    A[Amplitude Analytics<br/>EU Server] -->|API Export| B[Python Script<br/>fetch_data.py]
-    B -->|Retry Logic<br/>Error Handling| C[Local Storage<br/>data/*.json]
-    C -->|Optional Upload| D[Azure Blob Storage<br/>mattamplitude2025]
-    D --> E[Analytics & Reporting]
-
-    B -->|Logs| F[logs/*.log]
-
-    style A fill:#FF6B6B
-    style B fill:#4ECDC4
-    style C fill:#95E1D3
-    style D fill:#1A535C
-    style E fill:#F7B731
-    style F fill:#FFA502
-```
 
 ## Value Proposition
 
