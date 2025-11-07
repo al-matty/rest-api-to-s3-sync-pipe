@@ -256,6 +256,31 @@ amplitude/
 | 0 | Success |
 | 1 | Max retry attempts exceeded |
 
+
+
+
+### Deployment Options
+
+**1. Cron Job (Linux/macOS)**
+```bash
+# Run daily at 2 AM
+0 2 * * * cd /path/to/amplitude && python fetch_data.py
+```
+
+**3. Cloud Schedulers**
+- AWS EventBridge + Lambda
+- Google Cloud Scheduler + Cloud Functions
+- Azure Functions with Timer Trigger
+
+**4. GitHub Actions**
+```yaml
+# .github/workflows/export.yml
+on:
+  schedule:
+    - cron: '0 2 * * *'
+```
+
+
 ## License
 
 [Add your license information here]
