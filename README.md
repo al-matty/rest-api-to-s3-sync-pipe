@@ -205,25 +205,6 @@ amplitude/
 2025-11-07 00:43:12,345 - INFO - Data fetched successfully (status 200)
 ```
 
-## Error Handling
-
-### Common Scenarios
-
-1. **Missing Credentials**: Script will fail if `.env` file is missing or incomplete
-2. **Network Errors**: Automatically retried up to 5 times
-3. **Rate Limiting**: Waits 2 seconds before retrying
-4. **Server Errors**: Waits 1 second before retrying
-5. **Max Retries Exceeded**: Program exits with error code 1
-
-### Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | Max retry attempts exceeded |
-
-
-
 
 ### Deployment Options
 
@@ -249,8 +230,4 @@ on:
 
 ## License
 
-[Add your license information here]
-
-## Contact
-
-[Add contact information here]
+MIT-licensed, see LICENSE file.
