@@ -38,7 +38,7 @@ A Python script that fetches event data from Amplitude's EU residency API server
 
 2. **Install dependencies**:
    ```bash
-   pip install -r requrements.txt
+   pip install -r requirements.txt
    ```
 
 3. **Configure environment variables**:
@@ -86,62 +86,45 @@ python fetch_data.py
 6. Saves events to `data/YYYYMMDD_HHMM_ampl_dump.json`
 7. Logs all operations to `logs/log_YYYYMMDD_HHMMSS.log`
 
-## Retry Logic
+### Retry Logic Diagram:
 
-The script implements a robust retry mechanism to handle transient API failures:
-
-```mermaid
-flowchart TD
-    Start([Start fetch]) --> IncAttempt[Increment N_ATTEMPTS]
-    IncAttempt --> CheckMax{N_ATTEMPTS > 5?}
-    CheckMax -->|Yes| Exit[Log error & exit with code 1]
-    CheckMax -->|No| MakeRequest[Make API request to Amplitude]
-    MakeRequest --> CheckStatus{HTTP Status Code?}
-
-    CheckStatus -->|200 OK| Success[Return data]
-
-    CheckStatus -->|5xx Server Error| ServerError[Log: Server error]
-    ServerError --> Wait1s[Wait 1 second]
-    Wait1s --> Retry1[Recursive retry: call fetch again]
-    Retry1 --> IncAttempt
-
-    CheckStatus -->|429 Rate Limit| RateLimit[Log: Rate limit exceeded]
-    RateLimit --> Wait2s[Wait 2 seconds]
-    Wait2s --> Retry2[Recursive retry: call fetch again]
-    Retry2 --> IncAttempt
-
-    CheckStatus -->|Other codes| Unhandled[Log unhandled error]
-    Unhandled --> Raise[Raise Exception]
-
-    Success --> Return([Return to main])
-    Exit --> End([Program terminates])
-    Raise --> End
-
-    style Success fill:#90EE90
-    style Exit fill:#FFB6C6
-    style Raise fill:#FFB6C6
-    style Wait1s fill:#FFE4B5
-    style Wait2s fill:#FFE4B5
+```
+┌─────────────┐
+│ API Request │
+└──────┬──────┘
+       │
+       ▼
+  ┌─────────┐
+  │ Status? │
+  └────┬────┘
+       │
+       ├─── 200 ────────────► Return Data ✓
+       │
+       ├─── 5xx ────► Wait 1s ──┐
+       │                        │
+       ├─── 429 ────► Wait 2s ──┤
+       │                        │
+       │                        ▼
+       │                 ┌──────────────┐
+       │                 │ Attempts < 5?│
+       │                 └──────┬───────┘
+       │                        │
+       │                   Yes  │  No
+       │                        │  │
+       │                        │  └──► Exit(1) ✗
+       │                        │
+       │                        └──► Retry (Recursive)
+       │
+       └─── Other ──────────► Raise Error ✗
 ```
 
-### Retry Strategy Details:
+| Status Code | Wait Time | Action |
+|------------|-----------|--------|
+| 200 | - | Return data |
+| 5xx | 1s | Retry (max 5) |
+| 429 | 2s | Retry (max 5) |
+| Other | - | Raise exception |
 
-| Error Type | HTTP Code | Wait Time | Action |
-|------------|-----------|-----------|--------|
-| Server Errors | 500, 502, 503, 504, etc. | 1 second | Retry recursively |
-| Rate Limiting | 429 | 2 seconds | Retry recursively |
-| Success | 200 | N/A | Return data |
-| Unhandled | All others | N/A | Raise exception |
-| Max Attempts | Any (after 5 tries) | N/A | Exit program |
-
-**Key Implementation Details:**
-- **Type**: Recursive retry with linear backoff
-- **Global Counter**: `N_ATTEMPTS` tracks total attempts across all retries
-- **Max Attempts**: 5 retries before giving up
-- **Delay Strategy**: Fixed delays (not exponential)
-  - 5xx errors: 1 second
-  - 429 errors: 2 seconds (2x base delay)
-- **Logging**: Every attempt and error is logged
 
 ## Architecture
 
@@ -150,9 +133,10 @@ flowchart TD
 ```
 amplitude/
 ├── fetch_data.py           # Main application script
+├── utils.py                # Utility functions (fetch, unzip, write)
 ├── logging_config.py       # Logging configuration
 ├── .env                    # API credentials (not in git)
-├── requrements.txt         # Python dependencies
+├── requirements.txt        # Python dependencies
 ├── .gitignore             # Git ignore patterns
 ├── data/                  # Exported JSON files (created at runtime)
 └── logs/                  # Application logs (created at runtime)
@@ -162,10 +146,10 @@ amplitude/
 
 | Function | Location | Purpose |
 |----------|----------|---------|
-| `fetch()` | [fetch_data.py:48-89](fetch_data.py#L48-L89) | Fetches data from Amplitude API with retry logic |
-| `unzip()` | [fetch_data.py:36-45](fetch_data.py#L36-L45) | Extracts and decompresses event data |
-| `write_to_local()` | [fetch_data.py:92-101](fetch_data.py#L92-L101) | Saves events to timestamped JSON file |
-| `setup_logging()` | [logging_config.py:4-18](logging_config.py#L4-L18) | Configures logging with timestamps |
+| `fetch()` | [utils.py:32-81](utils.py#L32-L81) | Fetches data from Amplitude API with retry logic |
+| `unzip()` | [utils.py:20-29](utils.py#L20-L29) | Extracts and decompresses event data |
+| `write_to_local()` | [utils.py:83-92](utils.py#L83-L92) | Saves events to timestamped JSON file |
+| `setup_logging()` | [logging_config.py](logging_config.py) | Configures logging with timestamps |
 
 ### Data Flow
 
