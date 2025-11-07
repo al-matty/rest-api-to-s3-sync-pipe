@@ -256,33 +256,6 @@ amplitude/
 | 0 | Success |
 | 1 | Max retry attempts exceeded |
 
-## Dependencies
-
-See [requrements.txt](requrements.txt) for full list:
-
-- **requests** (2.32.5): HTTP library for API calls
-- **python-dotenv** (1.2.1): Loads environment variables
-- **logging** (0.4.9.6): Logging functionality
-
-## Troubleshooting
-
-### Issue: "Max fetch attempts reached"
-**Solution**: Check your internet connection and Amplitude API status. Verify credentials in `.env`.
-
-### Issue: Empty data files
-**Solution**: Verify the date range has events. Check Amplitude dashboard for data availability.
-
-### Issue: "ModuleNotFoundError"
-**Solution**: Run `pip install -r requrements.txt` to install dependencies.
-
-## Contributing
-
-When modifying the retry logic, ensure:
-1. Update the `max_attempts` constant if changing retry limits
-2. Adjust `delay_seconds` for different backoff strategies
-3. Update the retry diagram in this README
-4. Test with various failure scenarios
-
 ## License
 
 [Add your license information here]
