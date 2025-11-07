@@ -1,6 +1,5 @@
 """
 Utility functions for the Amplitude data export pipeline.
-Contains functions for fetching, unzipping, and writing data.
 """
 
 import json

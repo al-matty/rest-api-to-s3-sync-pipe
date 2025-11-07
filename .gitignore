@@ -1,4 +1,11 @@
 *.env
 *.*_env
-*\data*
-*\logs*
+\data
+\logs
+\slides
+claude.md
+\.claude
+\__pycache__
+*.pyc
+.DS_Store
+.vscode/
