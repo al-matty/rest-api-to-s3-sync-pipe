@@ -15,19 +15,16 @@ from utils import fetch, unzip, write_to_local
 # Load .env file
 load_dotenv()
 
-# Output config
+# Configuration
 log_outpath = "logs"
 log_level = logging.INFO    # or logging.ERROR
 data_outpath = "data"
 data_outfile = "ampl_dump"
-
-# Set up logging
-logger = setup_logging(log_outpath, log_level)
-logger.setLevel(log_level)
-
-# Configuration
 max_attempts = 5
 delay_seconds = 1
+
+# Set up logging
+setup_logging(log_outpath, log_level)
 
 # Get secrets from .env
 api_key = os.getenv("AMP_API_KEY")
