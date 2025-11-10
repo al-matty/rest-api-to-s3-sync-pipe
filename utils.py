@@ -44,8 +44,8 @@ def fetch(
     print(f"Fetch attempt {n_attempts}...")
 
     if n_attempts > max_attempts:
-        logger.error(f"Max fetch attempts reached ({n_attempts}/{max_attempts}). Exiting.")
-        print(f"Tried fetching unsuccessfully {n_attempts} times. Exiting.")
+        logger.error(f"Max fetch attempts reached ({n_attempts-1}/{max_attempts}). Exiting.")
+        print(f"Tried fetching unsuccessfully {n_attempts-1} times. Exiting.")
         sys.exit(1)
 
     logger.info(f"Fetching data from {url}")
