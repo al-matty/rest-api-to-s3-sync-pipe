@@ -2,6 +2,8 @@
 
 Free, open-source ETL pipeline for Amplitude Analytics → S3. A lightweight alternative to Airbyte with production-grade features: automated scheduling, retry logic, S3 sync, and comprehensive logging.
 
+![Architecture Diagram](img/hld.png)
+
 ## Features
 
 - **Fetch & backfill** - Query Amplitude API and save hourly snapshots locally
