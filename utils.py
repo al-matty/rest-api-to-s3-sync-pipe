@@ -18,24 +18,15 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
+#from logging_config import setup_logging
+#setup_logging()
+
 # Initialize S3 client
 s3_client = boto3.client(
     "s3",
-    aws_access_key_id=os.getenv("AWS_USER_ACCESS_KEY"),
-    aws_secret_access_key=os.getenv("AWS_USER_SECRET_ACCESS_KEY"),
+    aws_access_key_id=os.getenv("AWS_PYTHON_USER_ACCESS_KEY"),
+    aws_secret_access_key=os.getenv("AWS_PYTHON_USER_SECRET_KEY"),
 )
-
-
-def unzip(data: bytes) -> list[dict]:
-    """Extract and parse gzipped JSON from zip bytes."""
-    logger.info("Unzipping and parsing data")
-    events = []
-    with zipfile.ZipFile(io.BytesIO(data)) as z:
-        for filename in z.namelist():
-            content = gzip.decompress(z.read(filename)).decode()
-            events.extend([json.loads(line) for line in content.splitlines()])
-    logger.info(f"Parsed {len(events)} events")
-    return events
 
 
 def fetch(
@@ -89,18 +80,6 @@ def fetch(
         raise Exception(f"Error {response.status_code}: {response.text}")
 
 
-def write_to_local(events: list[dict], outpath: str, outfile: str) -> None:
-    """Write events to local JSON file with timestamp."""
-    os.makedirs(outpath, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    filename = f"{outpath}/{timestamp}_{outfile}.json"
-    logger.info(f"Writing {len(events)} events to {filename}")
-    with open(filename, "w") as f:
-        json.dump(events, f, indent=2)
-    logger.info("File saved successfully")
-    print(f"Saved to {filename}")
-
-
 def write_hourly_snapshots(data: bytes, outpath: str) -> None:
     """Extract and write one file per hour."""
     os.makedirs(outpath, exist_ok=True)
@@ -111,30 +90,107 @@ def write_hourly_snapshots(data: bytes, outpath: str) -> None:
     with zipfile.ZipFile(io.BytesIO(data)) as z:
         for filename in z.namelist():
             content = gzip.decompress(z.read(filename)).decode()
-            hour_key = filename.replace('.json.gz', '').split('#')[0].split('/')[-1]
+
+            # Clean file names: "100011471_2025-11-09_21#xyz.json.gz" -> "2025-11-09_21"
+            base_name = filename.split('/')[-1]  # Remove directory path if present
+            base_name = base_name.replace('.json.gz', '')  # Remove extension
+            base_name = base_name.split('#')[0]  # Remove hash suffix
+            if '_' in base_name and base_name.split('_')[0].isdigit():
+                hour_key = '_'.join(base_name.split('_')[1:])  # Remove first segment (project ID)
+            else:
+                hour_key = base_name
 
             with open(f"{outpath}/{hour_key}.jsonl", 'a') as f:  # ← Use JSONL format
-                f.write(content)  # Already newline-delimited
+                f.write(content)  # jsonl = newline-delimited
                 file_count += 1
     
     logger.info(f"{file_count} Files saved")
 
 
-def push_to_s3(data_dir: str = "data") -> None:
+def get_local_files(data_dir: str = "data") -> set[str]:
+    """Get set of existing hourly file names (without .jsonl extension)."""
+    if not os.path.exists(data_dir):
+        return set()
+
+    files = [
+        f.replace('.jsonl', '')
+        for f in os.listdir(data_dir)
+        if f.endswith('.jsonl')
+    ]
+    logger.info(f"Found {len(files)} existing files in {data_dir}")
+    return set(files)
+
+
+def filename_to_timestamp(filename: str) -> str:
+    """Convert filename format to API timestamp format.
+
+    Args:
+        filename: Format like "2025-11-10_21"
+
+    Returns:
+        API timestamp format like "20251110T21"
+    """
+    # Parse: "2025-11-10_21" -> "20251110T21"
+    date_part, hour_part = filename.rsplit('_', 1)
+    clean_date = date_part.replace('-', '')
+    return f"{clean_date}T{hour_part}"
+
+
+def query_difference(
+    missing_files: set[str],
+    url: str,
+    api_key: str,
+    secret_key: str,
+    delay_seconds: float,
+    max_attempts: int,
+    data_outpath: str
+) -> None:
+    """Fetch and save data for missing hourly files.
+
+    Args:
+        missing_files: Set of filenames like {"2025-11-10_21", "2025-11-10_22"}
+        url: Amplitude API endpoint
+        api_key: Amplitude API key
+        secret_key: Amplitude secret key
+        delay_seconds: Retry delay
+        max_attempts: Maximum fetch attempts
+        data_outpath: Output directory for data files
+    """
+    if not missing_files:
+        logger.info("No missing files to fetch")
+        print("All files already exist. Nothing to fetch.")
+        return
+
+    logger.info(f"Fetching {len(missing_files)} missing hourly files")
+    print(f"Fetching {len(missing_files)} missing hours...")
+
+    for filename in sorted(missing_files):
+        timestamp = filename_to_timestamp(filename)
+        logger.info(f"Fetching data for {filename} (timestamp: {timestamp})")
+        print(f"  Fetching {filename}...")
+
+        # Fetch single hour (start = end for hourly data)
+        data = fetch(
+            url=url,
+            api_key=api_key,
+            secret_key=secret_key,
+            delay_seconds=delay_seconds,
+            start=timestamp,
+            end=timestamp,
+            max_attempts=max_attempts
+        )
+
+        # Write the hourly snapshot
+        write_hourly_snapshots(data, data_outpath)
+
+    logger.info(f"Successfully fetched {len(missing_files)} missing files")
+    print(f"✓ Fetched {len(missing_files)} missing hours")
+
+
+def push_to_s3(bucket, data_dir: str = "data") -> None:
     """Upload all JSONL files from data directory to S3."""
-    bucket = os.getenv("BUCKET")
-
-    try:
-        # Test S3 connection
-        buckets_list = s3_client.list_buckets()
-        logger.info(f"Connected to S3 successfully (seeing {len(buckets_list['Buckets'])} buckets).")
-    except Exception:
-        error_msg = "Could not list S3 buckets. Check your AWS credentials."
-        print(error_msg)
-        logger.error(error_msg)
-        sys.exit(1)
-
-    # Get all JSON files
+    
+    # Get all local JSONL files
     files = [f for f in os.listdir(data_dir) if f.endswith('.jsonl')]
     logger.info(f"Got {len(files)} JSONL files from local.")
     print(f"Uploading {len(files)} files to S3 bucket {bucket}...")
@@ -143,11 +199,8 @@ def push_to_s3(data_dir: str = "data") -> None:
     for f in files:
         file_path = os.path.join(data_dir, f)
         try:
-            s3_client.upload_file(file_path, bucket, f)
+            s3_client.upload_file(file_path, bucket, f"python-import/{f}")
             logger.info(f"Uploaded {f} to s3://{bucket}/{f}")
         except Exception as e:
             logger.error(f"Error uploading {f}: {e}")
             raise e
-
-
-push_to_s3()
