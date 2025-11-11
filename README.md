@@ -29,7 +29,7 @@ Free, open-source ETL pipeline for Amplitude Analytics → S3. A lightweight alt
 
 3. **Run**
    ```bash
-   python run.py fetch    # Fetch data from Amplitude (last 7 days)
+   python run.py fetch    # Fetch data from Amplitude (last 1 day)
    python run.py sync     # Upload to S3 and cleanup local files
    python run.py all      # Complete pipeline (fetch + sync)
    ```
