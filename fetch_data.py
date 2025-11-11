@@ -10,7 +10,7 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from logging_config import setup_logging
-from utils import fetch, unzip, write_to_local
+from utils import fetch, write_hourly_snapshots
 
 # Load .env file
 load_dotenv()
@@ -19,9 +19,10 @@ load_dotenv()
 log_outpath = "logs"
 log_level = logging.INFO    # or logging.ERROR
 data_outpath = "data"
-data_outfile = "ampl_dump"
+data_outfile = ""
 max_attempts = 5
 delay_seconds = 1
+lookback_days = 1
 
 # Set up logging
 setup_logging(log_outpath, log_level)
@@ -31,9 +32,9 @@ api_key = os.getenv("AMP_API_KEY")
 secret_key = os.getenv("AMP_SECRET_KEY")
 
 # Format the start and end time (YYYYMMDDTHH)
-yesterday = datetime.now() - timedelta(days=1)
-start_time = yesterday.strftime("%Y%m%dT00")
-end_time = yesterday.strftime("%Y%m%dT23")
+now = datetime.now()
+start_time = (now - timedelta(days=lookback_days)).strftime("%Y%m%dT%H")
+end_time = now.strftime("%Y%m%dT%H")
 
 # API endpoint is the EU residency server
 url = "https://analytics.eu.amplitude.com/api/2/export"
@@ -49,9 +50,5 @@ data = fetch(
     max_attempts
     )
 
-# Unzip and parse data
-events = unzip(data)
-print(f"Parsed {len(events)} events")
-
-# Write to local file
-write_to_local(events, data_outpath, data_outfile)
+# Unzip & write hourly snapshots to local
+write_hourly_snapshots(data, data_outpath)

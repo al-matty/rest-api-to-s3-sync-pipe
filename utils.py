@@ -11,9 +11,19 @@ import time
 import io
 import gzip
 import zipfile
+import boto3
 from datetime import datetime
+from dotenv import load_dotenv
 
+load_dotenv()
 logger = logging.getLogger(__name__)
+
+# Initialize S3 client
+s3_client = boto3.client(
+    "s3",
+    aws_access_key_id=os.getenv("AWS_USER_ACCESS_KEY"),
+    aws_secret_access_key=os.getenv("AWS_USER_SECRET_ACCESS_KEY"),
+)
 
 
 def unzip(data: bytes) -> list[dict]:
@@ -89,3 +99,55 @@ def write_to_local(events: list[dict], outpath: str, outfile: str) -> None:
         json.dump(events, f, indent=2)
     logger.info("File saved successfully")
     print(f"Saved to {filename}")
+
+
+def write_hourly_snapshots(data: bytes, outpath: str) -> None:
+    """Extract and write one file per hour."""
+    os.makedirs(outpath, exist_ok=True)
+    
+    file_count = 0
+    logger.info(f"Writing hourly snapshots to {outpath}")
+
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        for filename in z.namelist():
+            content = gzip.decompress(z.read(filename)).decode()
+            hour_key = filename.replace('.json.gz', '').split('#')[0].split('/')[-1]
+
+            with open(f"{outpath}/{hour_key}.jsonl", 'a') as f:  # ← Use JSONL format
+                f.write(content)  # Already newline-delimited
+                file_count += 1
+    
+    logger.info(f"{file_count} Files saved")
+
+
+def push_to_s3(data_dir: str = "data") -> None:
+    """Upload all JSONL files from data directory to S3."""
+    bucket = os.getenv("BUCKET")
+
+    try:
+        # Test S3 connection
+        buckets_list = s3_client.list_buckets()
+        logger.info(f"Connected to S3 successfully (seeing {len(buckets_list['Buckets'])} buckets).")
+    except Exception:
+        error_msg = "Could not list S3 buckets. Check your AWS credentials."
+        print(error_msg)
+        logger.error(error_msg)
+        sys.exit(1)
+
+    # Get all JSON files
+    files = [f for f in os.listdir(data_dir) if f.endswith('.jsonl')]
+    logger.info(f"Got {len(files)} JSONL files from local.")
+    print(f"Uploading {len(files)} files to S3 bucket {bucket}...")
+
+    # Upload each file
+    for f in files:
+        file_path = os.path.join(data_dir, f)
+        try:
+            s3_client.upload_file(file_path, bucket, f)
+            logger.info(f"Uploaded {f} to s3://{bucket}/{f}")
+        except Exception as e:
+            logger.error(f"Error uploading {f}: {e}")
+            raise e
+
+
+push_to_s3()
