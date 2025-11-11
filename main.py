@@ -41,43 +41,27 @@ start_time = (yesterday - timedelta(days=lookback_days)).strftime("%Y%m%dT00")
 print(end_time)
 print(start_time)
 
+# TODO: COMMENT BACK IN
 # Fetch data & store locally
-data = fetch(url, api_key, secret_key, delay_seconds, start_time, end_time, max_attempts)
-write_hourly_snapshots(data, data_outpath)
-sys.exit()
+#data = fetch(url, api_key, secret_key, delay_seconds, start_time, end_time, max_attempts)
+#write_hourly_snapshots(data, data_outpath)
 
 
-# Generate required hourly files for the lookback period
-now = datetime.now()
-start_dt = now - timedelta(days=lookback_days)
-required_files = set()
 
-
-# Create set of required hourly filenames (format: "2025-11-10_21")
-current_dt = start_dt
-while current_dt <= now:
-    filename = current_dt.strftime("%Y-%m-%d_%H")
-    required_files.add(filename)
-    current_dt += timedelta(hours=1)
-
-
-print(f"Required files: {len(required_files)} hourly files")
-
-print("\n")
-print(required_files)
-sys.exit(1)
+# # Create set of required hourly filenames (format: "2025-11-10_21")
+# now = datetime.now()
+# start_dt = now - timedelta(days=lookback_days)
+# required_files = set()
+# current_dt = start_dt
+# while current_dt <= now:
+#     filename = current_dt.strftime("%Y-%m-%d_%H")
+#     required_files.add(filename)
+#     current_dt += timedelta(hours=1)
 
 
 # Get existing local files
 existing_files = get_local_files(data_outpath)
 print(f"Existing files: {len(existing_files)} hourly files")
-
-# Calculate difference (missing files)
-missing_files = required_files - existing_files
-print(f"Missing files: {len(missing_files)} hourly files")
-
-if missing_files:
-    print(f"\nMissing hours: {sorted(missing_files)}")
 
 
 
