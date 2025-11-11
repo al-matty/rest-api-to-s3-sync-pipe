@@ -9,3 +9,4 @@ claude.md
 *.pyc
 .DS_Store
 .vscode/
+snowflake_worksheet.sql
