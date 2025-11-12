@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 
 
-def setup_logging(log_dir="logs", level=logging.INFO):
+def setup_logging(log_dir="logs", level=logging.DEBUG):
     """Configure logging format."""
 
     os.makedirs(log_dir, exist_ok=True)

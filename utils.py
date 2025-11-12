@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # Configuration constants
 DEFAULT_LOOKBACK_DAYS = 1  # Default number of days to look back for data fetch
 DATA_AVAILABILITY_LAG_HOURS = 12  # Hours to subtract from 'now' to account for data availability delay
+DEV_S3_DIR = "s3_dev"  # Local directory to simulate S3 in dev mode
 
 # Initialize S3 client
 s3_client = boto3.client(
@@ -103,6 +104,10 @@ def write_hourly_snapshots(data: bytes, outpath: str) -> None:
             else:
                 hour_key = base_name
 
+            # Normalize hour to 2 digits: "2025-11-11_6" -> "2025-11-11_06"
+            date_part, hour_part = hour_key.rsplit('_', 1)
+            hour_key = f"{date_part}_{hour_part.zfill(2)}"
+
             with open(f"{outpath}/{hour_key}.jsonl", 'a') as f:  # ← Use JSONL format
                 f.write(content)  # jsonl = newline-delimited
                 file_count += 1
@@ -170,7 +175,6 @@ def query_difference(
     for filename in sorted(missing_files):
         timestamp = filename_to_timestamp(filename)
         logger.info(f"Fetching data for {filename} (timestamp: {timestamp})")
-        print(f"  Fetching {filename}...")
 
         # Fetch single hour (start = end for hourly data)
         data = fetch(
@@ -215,7 +219,7 @@ def generate_required_files(start_date: str, end_date: str) -> set[str]:
     else:
         end_dt = datetime.strptime(end_date.replace('-', '').replace(' ', 'T'), "%Y%m%dT%H")
 
-    # Generate hourly timestamps
+    # Generate set of hourly timestamps
     required = set()
     current = start_dt
     while current <= end_dt:
@@ -228,16 +232,28 @@ def generate_required_files(start_date: str, end_date: str) -> set[str]:
     return required
 
 
-def get_s3_files(bucket: str, prefix: str = "python-import/") -> set[str]:
+def get_s3_files(bucket: str, prefix: str = "python-import/", dev_mode: bool = False) -> set[str]:
     """Get set of existing files in S3 bucket (without .jsonl extension).
 
     Args:
         bucket: S3 bucket name
         prefix: S3 prefix/folder path (default: "python-import/")
+        dev_mode: If True, use local dev folder instead of AWS S3
 
     Returns:
         Set of filenames like {"2025-11-10_21", "2025-11-10_22"}
     """
+    # Dev mode: use local folder
+    if dev_mode:
+        dev_path = os.path.join(DEV_S3_DIR, prefix)
+        if not os.path.exists(dev_path):
+            logger.info(f"No files found in {dev_path} (dev mode)")
+            return set()
+        files = [f.replace('.jsonl', '') for f in os.listdir(dev_path) if f.endswith('.jsonl')]
+        logger.info(f"Found {len(files)} files in dev S3 folder")
+        return set(files)
+
+    # Production mode: use AWS S3
     try:
         response = s3_client.list_objects_v2(Bucket=bucket, Prefix=prefix)
 
@@ -299,15 +315,31 @@ def cleanup_local_files(data_dir: str = "data", files: set[str] | None = None) -
     print(f"✓ Cleaned up {deleted_count} files")
 
 
-def push_to_s3(bucket, data_dir: str = "data") -> None:
-    """Upload all JSONL files from data directory to S3."""
+def push_to_s3(bucket, data_dir: str = "data", dev_mode: bool = False) -> None:
+    """Upload all JSONL files from data directory to S3.
 
-    # Get all local JSONL files
+    Args:
+        bucket: S3 bucket name
+        data_dir: Local data directory (default: "data")
+        dev_mode: If True, copy to local dev folder instead of AWS S3
+    """
+    import shutil
+
     files = [f for f in os.listdir(data_dir) if f.endswith('.jsonl')]
     logger.info(f"Got {len(files)} JSONL files from local.")
-    print(f"Uploading {len(files)} files to S3 bucket {bucket}...")
 
-    # Upload each file
+    # Dev mode: copy to local folder
+    if dev_mode:
+        dev_path = os.path.join(DEV_S3_DIR, "python-import")
+        os.makedirs(dev_path, exist_ok=True)
+        print(f"Copying {len(files)} files to dev S3 folder...")
+        for f in files:
+            shutil.copy2(os.path.join(data_dir, f), os.path.join(dev_path, f))
+            logger.info(f"Copied {f} to {dev_path}")
+        return
+
+    # Production mode: upload to AWS S3
+    print(f"Uploading {len(files)} files to S3 bucket {bucket}...")
     for f in files:
         file_path = os.path.join(data_dir, f)
         try:
@@ -322,7 +354,82 @@ def push_to_s3(bucket, data_dir: str = "data") -> None:
 # WORKFLOW FUNCTIONS
 # ============================================================================
 
-def fetch_workflow(start_date: str, end_date: str) -> None:
+def _adjust_start_from_s3(start_date: str, end_date: str, dev_mode: bool = False) -> str:
+    """Soft S3 check: Adjust start_date if continuous data exists in S3.
+
+    Logic:
+    - Try to get S3 files in the required range
+    - Find the latest continuous sequence of hours from start_date
+    - If complete sequence exists up to a certain hour, adjust start_date
+    - Return original start_date if S3 unavailable or has gaps
+
+    Args:
+        start_date: Original start datetime
+        end_date: End datetime for the range
+        dev_mode: If True, use local dev folder instead of AWS S3
+
+    Returns:
+        Adjusted start_date (or original if no adjustment needed)
+    """
+    try:
+        # Get S3 files
+        bucket = os.getenv("AWS_BUCKET_NAME") if not dev_mode else None
+        if not bucket and not dev_mode:
+            logger.info("No AWS_BUCKET_NAME configured, skipping S3 check")
+            print("   → No S3 bucket configured, continuing with original range")
+            return start_date
+
+        s3_files = get_s3_files(bucket or "", dev_mode=dev_mode)
+
+        if not s3_files:
+            logger.info("No files in S3, continuing with original range")
+            print("   → No files in S3, continuing with original range")
+            return start_date
+
+        # Generate required files to check against
+        required_files = generate_required_files(start_date, end_date)
+
+        # Find continuous sequence from start
+        sorted_required = sorted(required_files)
+        last_continuous_file = None
+
+        for filename in sorted_required:
+            if filename in s3_files:
+                last_continuous_file = filename
+            else:
+                # Gap detected, stop here
+                break
+
+        if last_continuous_file:
+            # Parse last continuous file to get next hour
+            from datetime import timedelta
+
+            # Parse filename "2025-11-10_21" to datetime
+            dt = datetime.strptime(last_continuous_file, "%Y-%m-%d_%H")
+            # Move to next hour
+            next_hour = dt + timedelta(hours=1)
+
+            # Format as API timestamp
+            new_start = next_hour.strftime("%Y%m%dT%H")
+
+            logger.info(f"S3 check: Continuous data found up to {last_continuous_file}, adjusting start to {new_start}")
+            print(f"   → Continuous data in S3 up to {last_continuous_file}")
+            print(f"   → Adjusting start date from {start_date} to {new_start}")
+
+            return new_start
+        else:
+            logger.info("S3 check: No continuous sequence found, continuing with original range")
+            print("   → No continuous data in S3, continuing with original range")
+            return start_date
+
+    except Exception as e:
+        # Soft failure: log and continue with original range
+        logger.warning(f"S3 check failed (continuing with original range): {e}")
+        print("   → S3 check failed, continuing with original range")
+        return start_date
+
+
+def fetch_workflow(start_date: str, end_date: str, dev_mode: bool = False) -> None:
     """Fetch workflow: Query Amplitude API and save hourly snapshots locally.
 
     This workflow:
@@ -335,6 +442,7 @@ def fetch_workflow(start_date: str, end_date: str) -> None:
     Args:
         start_date: Start datetime (format: "YYYYMMDDTHH" or "YYYY-MM-DD_HH")
         end_date: End datetime (format: "YYYYMMDDTHH" or "YYYY-MM-DD_HH")
+        dev_mode: If True, use local dev folder instead of AWS S3
     """
     logger.info("=== Starting FETCH workflow ===")
     print("\n=== FETCH WORKFLOW ===")
@@ -347,20 +455,27 @@ def fetch_workflow(start_date: str, end_date: str) -> None:
     delay_seconds = 3.0
     max_attempts = 5
 
+    # Soft S3 check to potentially adjust start_date
+    print("\n0. Checking S3 for existing data (soft check)...")
+    start_date = _adjust_start_from_s3(start_date, end_date, dev_mode=dev_mode)
+
     # 1. Generate required files
     print(f"\n1. Generating required files from {start_date} to {end_date}...")
     required_files = generate_required_files(start_date, end_date)
     print(f"   → {len(required_files)} hourly files required")
+    logger.debug(f"required_files ({len(required_files)} items): {sorted(required_files)[:5]}")
 
     # 2. Get existing local files
     print("\n2. Checking existing local files...")
     local_files = get_local_files(data_dir)
     print(f"   → {len(local_files)} files already exist locally")
+    logger.debug(f"local_files ({len(local_files)} items): {sorted(local_files)[:5]}")
 
     # 3. Calculate missing files
     missing_files = required_files - local_files
     print("\n3. Calculating missing files...")
     print(f"   → {len(missing_files)} files need to be fetched")
+    logger.debug(f"missing_files ({len(missing_files)} items): {sorted(missing_files)[:5]}")
 
     if not missing_files:
         print("\n✓ All files already exist. Nothing to fetch.")
@@ -383,7 +498,7 @@ def fetch_workflow(start_date: str, end_date: str) -> None:
     logger.info("=== FETCH workflow completed successfully ===")
 
 
-def sync_workflow() -> None:
+def sync_workflow(dev_mode: bool = False) -> None:
     """S3 sync workflow: Upload local files to S3 and cleanup.
 
     This workflow:
@@ -393,18 +508,21 @@ def sync_workflow() -> None:
     4. Pushes remaining local files to S3
     5. Cleans up local files after successful upload
 
+    Args:
+        dev_mode: If True, use local dev folder instead of AWS S3
     """
     logger.info("=== Starting SYNC workflow ===")
     print("\n=== SYNC WORKFLOW ===")
 
     # Load environment variables
-    bucket = os.getenv("AWS_BUCKET_NAME")
+    bucket = os.getenv("AWS_BUCKET_NAME") if not dev_mode else None
     data_dir = "data"
 
     # 1. Get local files
     print("\n1. Checking local files...")
     local_files = get_local_files(data_dir)
     print(f"   → {len(local_files)} files found locally")
+    logger.debug(f"local_files ({len(local_files)} items): {sorted(local_files)[:5]}")
 
     if not local_files:
         print("\n✓ No local files to sync.")
@@ -413,11 +531,13 @@ def sync_workflow() -> None:
 
     # 2. Get S3 files
     print("\n2. Checking S3 bucket...")
-    s3_files = get_s3_files(bucket)
+    s3_files = get_s3_files(bucket or "", dev_mode=dev_mode)
     print(f"   → {len(s3_files)} files already in S3")
+    logger.debug(f"s3_files ({len(s3_files)} items): {sorted(s3_files)[:5]}")
 
     # 3. Remove overlap from local (files already in S3)
     overlap = local_files & s3_files
+    logger.debug(f"overlap ({len(overlap)} items): {sorted(overlap)[:5]}")
     if overlap:
         print(f"\n3. Removing {len(overlap)} files that already exist in S3...")
         cleanup_local_files(data_dir, overlap)
@@ -432,7 +552,7 @@ def sync_workflow() -> None:
 
     # 4. Push to S3
     print(f"\n4. Pushing {len(local_files)} files to S3...")
-    push_to_s3(bucket, data_dir)
+    push_to_s3(bucket or "", data_dir, dev_mode=dev_mode)
 
     # 5. Cleanup local files
     print("\n5. Cleaning up local files after successful upload...")
@@ -442,7 +562,7 @@ def sync_workflow() -> None:
     logger.info("=== SYNC workflow completed successfully ===")
 
 
-def complete_workflow(start_date: str, end_date: str) -> None:
+def complete_workflow(start_date: str, end_date: str, dev_mode: bool = False) -> None:
     """Complete workflow: Fetch data and sync to S3.
 
     This runs both fetch and sync workflows in sequence:
@@ -452,15 +572,16 @@ def complete_workflow(start_date: str, end_date: str) -> None:
     Args:
         start_date: Start datetime (format: "YYYYMMDDTHH" or "YYYY-MM-DD_HH")
         end_date: End datetime (format: "YYYYMMDDTHH" or "YYYY-MM-DD_HH")
+        dev_mode: If True, use local dev folder instead of AWS S3
     """
     logger.info("=== Starting COMPLETE workflow (fetch + sync) ===")
     print("\n=== COMPLETE WORKFLOW (FETCH + SYNC) ===")
 
     # Run fetch workflow
-    fetch_workflow(start_date, end_date)
+    fetch_workflow(start_date, end_date, dev_mode=dev_mode)
 
     # Run sync workflow
-    sync_workflow()
+    sync_workflow(dev_mode=dev_mode)
 
     print("\n✓ COMPLETE workflow finished!")
     logger.info("=== COMPLETE workflow finished successfully ===")

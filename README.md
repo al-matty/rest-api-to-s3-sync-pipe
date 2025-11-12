@@ -1,16 +1,34 @@
-# Amplitude Analytics Data Exporter
+# API to S3 Hourly Syncing and Backfilling
 
-Free, open-source ETL pipeline for Amplitude Analytics → S3. A lightweight alternative to Airbyte with production-grade features: automated scheduling, retry logic, S3 sync, and comprehensive logging.
+Self-hosted ETL pipeline for REST API → S3. Skip expensive cloud ETL services. Get production-grade features (retry logic, S3 sync, scheduling) in a simple, transparent Python script.
 
-![Architecture Diagram](img/hld.png)
+The pipeline consists of two workflows: **Fetching** (query Amplitude API for hourly event data) and **Syncing** (upload to S3 with duplicate prevention and cleanup). The workflows can be triggered via CLI. Run the commands with the `--dev` flag to simulate s3 as local folder instead. Anything about to be sent to s3 will then go there instead.
 
-## Features
+---
 
-- **Fetch & backfill** - Query Amplitude API and save hourly snapshots locally
-- **S3 sync** - Upload to S3, prevent duplicates, auto-cleanup
-- **Smart retry logic** - Handles rate limits (429) and server errors (5xx)
-- **CLI interface** - Simple commands: `fetch`, `sync`, `all`
-- **EU compliant** - Uses Amplitude EU residency server
+## `Fetching Workflow` - Fetching & Backfilling
+- `python run.py fetch`
+- **S3 optimization check** - Check S3 for continuous data, adjust start date if found
+- Generate required hourly files (start → end range)
+- Get existing local files
+- Calculate missing files (required - local)
+- Query Amplitude API for missing hours
+- Save as `data/YYYY-MM-DD_HH.jsonl`
+
+![Fetching Workflow](img/diagram_fetching.png)
+
+
+## `Syncing Workflow` - S3 syncing
+- `python run.py sync`
+- Get local files
+- Get remote S3 files
+- Remove local files already in S3 (prevent duplicates)
+- Push remaining files to S3 (`python-import/` prefix)
+- Cleanup local files after successful upload
+
+![Syncing Workflow](img/diagram_syncing.png)
+
+---
 
 ## Quick Start
 
@@ -34,6 +52,7 @@ Free, open-source ETL pipeline for Amplitude Analytics → S3. A lightweight alt
    python run.py fetch    # Fetch data from Amplitude (last 1 day)
    python run.py sync     # Upload to S3 and cleanup local files
    python run.py all      # Complete pipeline (fetch + sync)
+   python run.py all --dev  # Dev mode: use local s3_dev/ folder (no AWS calls)
    ```
 
 ## Usage
@@ -49,53 +68,11 @@ python run.py sync
 
 # Run complete workflow (fetch + sync)
 python run.py all
+
+# Development mode: use local s3_dev/ folder instead of AWS S3
+python run.py all --dev
 ```
 
-### Architecture
-
-```
-┌──────────────────────────┐
-│     Amplitude API        │
-│  (EU Residency Server)   │
-└────────────┬─────────────┘
-             │ ① Fetch hourly data
-             ▼
-┌──────────────────────────┐
-│    Local Storage         │
-│  data/2025-11-10_21.jsonl│
-└────────────┬─────────────┘
-             │ ② Sync & upload
-             ▼
-┌──────────────────────────┐
-│      AWS S3 Bucket       │
-│  python-import/*.jsonl   │
-└──────────────────────────┘
-```
-
-**Data Flow:**
-1. **Amplitude API** → Fetch hourly event data (JSONL files)
-2. **Local Storage** → Store as hourly snapshots (`data/2025-11-10_21.jsonl`)
-3. **S3 Sync** → Upload to S3, remove duplicates, cleanup local files
-
-### What Each Command Does
-
-**`fetch`** - Fetching & backfilling
-- Generate required hourly files (start → end range)
-- Get existing local files
-- Calculate missing files (required - local)
-- Query Amplitude API for missing hours
-- Save as `data/YYYY-MM-DD_HH.jsonl`
-
-**`sync`** - S3 syncing
-- Get local files
-- Get remote S3 files
-- Remove local files already in S3 (prevent duplicates)
-- Push remaining files to S3 (`python-import/` prefix)
-- Cleanup local files after successful upload
-
-**`all`** - Complete pipeline
-- Run `fetch` workflow
-- Run `sync` workflow
 
 ### File Format
 
@@ -103,6 +80,13 @@ python run.py all
 - One file per hour
 - JSONL format (newline-delimited JSON)
 - Uploaded to: `s3://bucket/python-import/2025-11-10_21.jsonl`
+
+### Development Mode
+
+Use `--dev` flag to avoid AWS API calls during development:
+- S3 operations use local `s3_dev/` folder instead of AWS
+- Perfect for testing without incurring AWS costs
+- Simulates full S3 workflow locally
 
 ## Scheduling
 
