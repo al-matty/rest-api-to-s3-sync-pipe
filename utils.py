@@ -104,6 +104,10 @@ def write_hourly_snapshots(data: bytes, outpath: str) -> None:
             else:
                 hour_key = base_name
 
+            # Normalize hour to 2 digits: "2025-11-11_6" -> "2025-11-11_06"
+            date_part, hour_part = hour_key.rsplit('_', 1)
+            hour_key = f"{date_part}_{hour_part.zfill(2)}"
+
             with open(f"{outpath}/{hour_key}.jsonl", 'a') as f:  # ← Use JSONL format
                 f.write(content)  # jsonl = newline-delimited
                 file_count += 1
