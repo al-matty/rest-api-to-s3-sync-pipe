@@ -1,8 +1,7 @@
 """
-Utility functions for the Amplitude data export pipeline.
+Utility functions & main workflow definitions for Amplitude data fetching and S3 syncing.
 """
 
-import json
 import logging
 import requests
 import os
@@ -20,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 #from logging_config import setup_logging
 #setup_logging()
+
+# Configuration constants
+DEFAULT_LOOKBACK_DAYS = 1  # Default number of days to look back for data fetch
+DATA_AVAILABILITY_LAG_HOURS = 12  # Hours to subtract from 'now' to account for data availability delay
 
 # Initialize S3 client
 s3_client = boto3.client(
@@ -390,7 +393,6 @@ def sync_workflow() -> None:
     4. Pushes remaining local files to S3
     5. Cleans up local files after successful upload
 
-    Requires AWS credentials in .env file.
     """
     logger.info("=== Starting SYNC workflow ===")
     print("\n=== SYNC WORKFLOW ===")
