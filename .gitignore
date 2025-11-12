@@ -10,3 +10,4 @@ claude.md
 .DS_Store
 .vscode/
 snowflake_worksheet.sql
+job.sh
