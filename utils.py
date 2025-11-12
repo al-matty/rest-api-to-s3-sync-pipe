@@ -463,16 +463,19 @@ def fetch_workflow(start_date: str, end_date: str, dev_mode: bool = False) -> No
     print(f"\n1. Generating required files from {start_date} to {end_date}...")
     required_files = generate_required_files(start_date, end_date)
     print(f"   → {len(required_files)} hourly files required")
+    logger.debug(f"required_files ({len(required_files)} items): {sorted(required_files)[:5]}")
 
     # 2. Get existing local files
     print("\n2. Checking existing local files...")
     local_files = get_local_files(data_dir)
     print(f"   → {len(local_files)} files already exist locally")
+    logger.debug(f"local_files ({len(local_files)} items): {sorted(local_files)[:5]}")
 
     # 3. Calculate missing files
     missing_files = required_files - local_files
     print("\n3. Calculating missing files...")
     print(f"   → {len(missing_files)} files need to be fetched")
+    logger.debug(f"missing_files ({len(missing_files)} items): {sorted(missing_files)[:5]}")
 
     if not missing_files:
         print("\n✓ All files already exist. Nothing to fetch.")
@@ -519,6 +522,7 @@ def sync_workflow(dev_mode: bool = False) -> None:
     print("\n1. Checking local files...")
     local_files = get_local_files(data_dir)
     print(f"   → {len(local_files)} files found locally")
+    logger.debug(f"local_files ({len(local_files)} items): {sorted(local_files)[:5]}")
 
     if not local_files:
         print("\n✓ No local files to sync.")
@@ -529,9 +533,11 @@ def sync_workflow(dev_mode: bool = False) -> None:
     print("\n2. Checking S3 bucket...")
     s3_files = get_s3_files(bucket or "", dev_mode=dev_mode)
     print(f"   → {len(s3_files)} files already in S3")
+    logger.debug(f"s3_files ({len(s3_files)} items): {sorted(s3_files)[:5]}")
 
     # 3. Remove overlap from local (files already in S3)
     overlap = local_files & s3_files
+    logger.debug(f"overlap ({len(overlap)} items): {sorted(overlap)[:5]}")
     if overlap:
         print(f"\n3. Removing {len(overlap)} files that already exist in S3...")
         cleanup_local_files(data_dir, overlap)
