@@ -3,6 +3,7 @@
 \data
 \logs
 \slides
+\s3_dev
 claude.md
 \.claude
 \__pycache__

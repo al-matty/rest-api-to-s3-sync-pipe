@@ -7,6 +7,7 @@ Free, open-source ETL pipeline for Amplitude Analytics → S3. A lightweight alt
 ## Features
 
 - **Fetch & backfill** - Query Amplitude API and save hourly snapshots locally
+- **Smart S3 optimization** - Auto-adjusts fetch range based on existing S3 data to reduce API calls
 - **S3 sync** - Upload to S3, prevent duplicates, auto-cleanup
 - **Smart retry logic** - Handles rate limits (429) and server errors (5xx)
 - **CLI interface** - Simple commands: `fetch`, `sync`, `all`
@@ -34,6 +35,7 @@ Free, open-source ETL pipeline for Amplitude Analytics → S3. A lightweight alt
    python run.py fetch    # Fetch data from Amplitude (last 1 day)
    python run.py sync     # Upload to S3 and cleanup local files
    python run.py all      # Complete pipeline (fetch + sync)
+   python run.py all --dev  # Dev mode: use local s3_dev/ folder (no AWS calls)
    ```
 
 ## Usage
@@ -49,6 +51,9 @@ python run.py sync
 
 # Run complete workflow (fetch + sync)
 python run.py all
+
+# Development mode: use local s3_dev/ folder instead of AWS S3
+python run.py all --dev
 ```
 
 ### Architecture
@@ -80,6 +85,7 @@ python run.py all
 ### What Each Command Does
 
 **`fetch`** - Fetching & backfilling
+- **S3 optimization check** - Check S3 for continuous data, adjust start date if found
 - Generate required hourly files (start → end range)
 - Get existing local files
 - Calculate missing files (required - local)
@@ -103,6 +109,13 @@ python run.py all
 - One file per hour
 - JSONL format (newline-delimited JSON)
 - Uploaded to: `s3://bucket/python-import/2025-11-10_21.jsonl`
+
+### Development Mode
+
+Use `--dev` flag to avoid AWS API calls during development:
+- S3 operations use local `s3_dev/` folder instead of AWS
+- Perfect for testing without incurring AWS costs
+- Simulates full S3 workflow locally
 
 ## Scheduling
 

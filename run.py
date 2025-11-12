@@ -10,6 +10,7 @@ Usage:
 Optional arguments:
     --start-date YYYYMMDDTHH         - Start date for data export (default: 1 day ago from adjusted end)
     --end-date YYYYMMDDTHH           - End date for data export (default: 12 hours ago)
+    --dev                            - Development mode: use local s3_dev/ folder instead of AWS S3
 """
 
 import argparse
@@ -54,6 +55,7 @@ Examples:
   python run.py fetch --start-date 20251110T00 --end-date 20251110T23
   python run.py sync                            # Sync local files to S3
   python run.py all                             # Fetch + sync
+  python run.py all --dev                       # Dev mode: use local s3_dev/ folder
         """
     )
 
@@ -75,6 +77,12 @@ Examples:
         help="End date (format: YYYYMMDDTHH, e.g., 20251110T23). Default: 12 hours ago (accounts for data lag)"
     )
 
+    parser.add_argument(
+        "--dev",
+        action="store_true",
+        help="Development mode: use local s3_dev/ folder instead of AWS S3 (saves API calls)"
+    )
+
     args = parser.parse_args()
 
     # Get dates (use defaults if not provided)
@@ -82,19 +90,23 @@ Examples:
     start_date = args.start_date or default_start
     end_date = args.end_date or default_end
 
+    # Show mode
+    if args.dev:
+        print("\n🔧 DEV MODE: Using local s3_dev/ folder instead of AWS S3")
+
     # Execute command
     try:
         if args.command == "fetch":
             print(f"Running FETCH workflow: {start_date} to {end_date}")
-            fetch_workflow(start_date, end_date)
+            fetch_workflow(start_date, end_date, dev_mode=args.dev)
 
         elif args.command == "sync":
             print("Running SYNC workflow")
-            sync_workflow()
+            sync_workflow(dev_mode=args.dev)
 
         elif args.command == "all":
             print(f"Running COMPLETE workflow: {start_date} to {end_date}")
-            complete_workflow(start_date, end_date)
+            complete_workflow(start_date, end_date, dev_mode=args.dev)
 
         print("\n✓ Command completed successfully!")
         sys.exit(0)
