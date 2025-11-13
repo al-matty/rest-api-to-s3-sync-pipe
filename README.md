@@ -30,6 +30,29 @@ The pipeline consists of two workflows: **Fetching** (query Amplitude API for ho
 
 ---
 
+
+## Usage
+
+### Commands
+
+```bash
+# Run fetching workflow
+python run.py fetch
+
+# Sync local files to S3
+python run.py sync
+
+# Run complete workflow (fetch + sync)
+python run.py all
+
+# Fetch data for specific date range
+python run.py fetch --start-date 20251110T00 --end-date 20251110T23
+
+# Development mode: use local s3_dev/ folder instead of AWS S3
+python run.py all --dev
+```
+
+
 ## Quick Start
 
 1. **Install dependencies**
@@ -49,29 +72,11 @@ The pipeline consists of two workflows: **Fetching** (query Amplitude API for ho
 
 3. **Run**
    ```bash
-   python run.py fetch    # Fetch data from Amplitude (last 1 day)
-   python run.py sync     # Upload to S3 and cleanup local files
-   python run.py all      # Complete pipeline (fetch + sync)
+   python run.py fetch      # Fetch data from Amplitude (last 1 day)
+   python run.py sync       # Upload to S3 and cleanup local files
+   python run.py all        # Complete pipeline (fetch + sync)
    python run.py all --dev  # Dev mode: use local s3_dev/ folder (no AWS calls)
    ```
-
-## Usage
-
-### Commands
-
-```bash
-# Fetch data for specific date range
-python run.py fetch --start-date 20251110T00 --end-date 20251110T23
-
-# Sync local files to S3
-python run.py sync
-
-# Run complete workflow (fetch + sync)
-python run.py all
-
-# Development mode: use local s3_dev/ folder instead of AWS S3
-python run.py all --dev
-```
 
 
 ### File Format
