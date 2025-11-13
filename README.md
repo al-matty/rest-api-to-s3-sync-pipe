@@ -11,7 +11,7 @@ The pipeline consists of two workflows: **Fetching** (query Amplitude API for ho
 - **S3 optimization check** - Check S3 for continuous data, adjust start date if found
 - Generate required hourly files (start → end range)
 - Get existing local files
-- Calculate missing files (required - local)
+- Calculate missing files (required files minus locally available files)
 - Query Amplitude API for missing hours
 - Save as `data/YYYY-MM-DD_HH.jsonl`
 
