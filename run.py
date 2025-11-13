@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-CLI interface for Amplitude data export pipeline.
+CLI interface for pipeline:
 
-Usage:
     python run.py fetch              - Fetch data from Amplitude API and save locally
     python run.py sync               - Sync local files to S3 and cleanup
     python run.py all                - Run complete pipeline (fetch + sync)
@@ -24,20 +23,12 @@ setup_logging()
 
 
 def get_default_dates(lookback_days=DEFAULT_LOOKBACK_DAYS):
-    """Get default start and end dates.
-
-    Args:
-        lookback_days: Number of days to look back (default: from utils.DEFAULT_LOOKBACK_DAYS)
-
-    Returns:
-        Tuple of (start_date, end_date) with end_date adjusted for data availability lag
-    """
+    """Get default start and end dates."""
     now = datetime.utcnow()
 
     # Subtract lag hours from 'now' to ensure data is available
     adjusted_now = now - timedelta(hours=DATA_AVAILABILITY_LAG_HOURS)
     start_dt = adjusted_now - timedelta(days=lookback_days)
-
     start_date = start_dt.strftime("%Y%m%dT%H")
     end_date = adjusted_now.strftime("%Y%m%dT%H")
 

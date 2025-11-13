@@ -1,5 +1,5 @@
 """
-Utility functions & main workflow definitions for Amplitude data fetching and S3 syncing.
+Utility functions & main workflow definitions
 """
 
 import logging
@@ -142,8 +142,8 @@ def filename_to_timestamp(filename: str) -> str:
 def batch_consecutive_timestamps(filenames: set[str], max_batch_hours: int | None = None) -> list[tuple[str, str]]:
     """Batch consecutive hourly timestamps into (start, end) ranges.
     assumes: Set like {"2025-11-10_21", "2025-11-10_22", "2025-11-10_23"}
-    optional: Maximum hours per batch (default: None = unlimited)
     returns: List of (start_timestamp, end_timestamp) tuples like [("20251110T21", "20251110T23")]
+    optional: Maximum hours per batch (default: None = unlimited)
     """
     if not filenames:
         return []
@@ -207,19 +207,9 @@ def query_difference(
     data_outpath: str,
     max_batch_hours: int | None = None
 ) -> None:
-    """Fetch and save data for missing hourly files.
-
+    """
+    Fetch and save data for missing hourly files.
     Automatically batches consecutive hours into single API calls to reduce overhead.
-
-    Args:
-        missing_files: Set of filenames, e.g. {"2025-11-10_21", "2025-11-10_22"}
-        url: Amplitude API endpoint
-        api_key: Amplitude API key
-        secret_key: Amplitude secret key
-        delay_seconds: Retry delay
-        max_attempts: Maximum fetch attempts
-        data_outpath: Output directory for data files
-        max_batch_hours: Optional maximum hours per batch (default: None = unlimited)
     """
     if not missing_files:
         logger.info("No missing files to fetch")
@@ -255,14 +245,11 @@ def query_difference(
 
 
 def generate_required_files(start_date: str, end_date: str) -> set[str]:
-    """Generate complete list of hourly timestamps from start to end.
-
-    Args:
+    """
+    Generate complete list of hourly timestamps from start to end.
         start_date: Start datetime string (format: "YYYYMMDDTHH" or "YYYY-MM-DD HH")
         end_date: End datetime string (format: "YYYYMMDDTHH" or "YYYY-MM-DD HH")
-
-    Returns:
-        Set of filenames like {"2025-11-10_21", "2025-11-10_22"}
+        returns: Filenames set like {"2025-11-10_21", "2025-11-10_22"}
     """
     from datetime import timedelta
 
@@ -293,15 +280,12 @@ def generate_required_files(start_date: str, end_date: str) -> set[str]:
 
 
 def get_s3_files(bucket: str, prefix: str = "python-import/", dev_mode: bool = False) -> set[str]:
-    """Get set of existing files in S3 bucket (without .jsonl extension).
-
-    Args:
+    """
+    Get set of existing files in S3 bucket (without .jsonl extension).
         bucket: S3 bucket name
         prefix: S3 prefix/folder path (default: "python-import/")
         dev_mode: If True, use local dev folder instead of AWS S3
-
-    Returns:
-        Set of filenames like {"2025-11-10_21", "2025-11-10_22"}
+        returns: Set of filenames like {"2025-11-10_21", "2025-11-10_22"}
     """
     # Dev mode: use local folder
     if dev_mode:
@@ -336,10 +320,8 @@ def get_s3_files(bucket: str, prefix: str = "python-import/", dev_mode: bool = F
 
 
 def cleanup_local_files(data_dir: str = "data", files: set[str] | None = None) -> None:
-    """Delete local files after successful S3 upload.
-
-    Args:
-        data_dir: Directory containing data files (default: "data")
+    """
+    Delete local files after successful S3 upload.
         files: Specific set of filenames to delete (without .jsonl extension).
                If None, deletes all .jsonl files in the directory.
     """
@@ -376,12 +358,9 @@ def cleanup_local_files(data_dir: str = "data", files: set[str] | None = None) -
 
 
 def push_to_s3(bucket, data_dir: str = "data", dev_mode: bool = False) -> None:
-    """Upload all JSONL files from data directory to S3.
-
-    Args:
-        bucket: S3 bucket name
-        data_dir: Local data directory (default: "data")
-        dev_mode: If True, copy to local dev folder instead of AWS S3
+    """
+    Upload all JSONL files from data directory to S3.
+    dev_mode: If True, copy to local dev folder instead of AWS S3
     """
     import shutil
 
@@ -415,21 +394,16 @@ def push_to_s3(bucket, data_dir: str = "data", dev_mode: bool = False) -> None:
 # ============================================================================
 
 def _adjust_start_from_s3(start_date: str, end_date: str, dev_mode: bool = False) -> str:
-    """Soft S3 check: Adjust start_date if continuous data exists in S3.
-
-    Logic:
+    """
     - Try to get S3 files in the required range
     - Find the latest continuous sequence of hours from start_date
     - If complete sequence exists up to a certain hour, adjust start_date
     - Return original start_date if S3 unavailable or has gaps
-
-    Args:
+        
         start_date: Original start datetime
         end_date: End datetime for the range
         dev_mode: If True, use local dev folder instead of AWS S3
-
-    Returns:
-        Adjusted start_date (or original if no adjustment needed)
+        returns: Adjusted start_date (or original if no adjustment needed)
     """
     try:
         # Get S3 files
@@ -490,16 +464,14 @@ def _adjust_start_from_s3(start_date: str, end_date: str, dev_mode: bool = False
 
 
 def fetch_workflow(start_date: str, end_date: str, dev_mode: bool = False) -> None:
-    """Fetch workflow: Query Amplitude API and save hourly snapshots locally.
-
-    This workflow:
+    """
+    Fetch workflow:
     1. Generates required hourly files from start_date to end_date
     2. Gets existing local files
     3. Calculates missing files (required - local)
     4. Fetches missing data from Amplitude API
     5. Saves as hourly JSONL snapshots
 
-    Args:
         start_date: Start datetime (format: "YYYYMMDDTHH" or "YYYY-MM-DD_HH")
         end_date: End datetime (format: "YYYYMMDDTHH" or "YYYY-MM-DD_HH")
         dev_mode: If True, use local dev folder instead of AWS S3
@@ -559,16 +531,14 @@ def fetch_workflow(start_date: str, end_date: str, dev_mode: bool = False) -> No
 
 
 def sync_workflow(dev_mode: bool = False) -> None:
-    """S3 sync workflow: Upload local files to S3 and cleanup.
-
-    This workflow:
+    """
+    S3 sync workflow:
     1. Gets existing local files
     2. Gets remote S3 files
     3. Removes local files that already exist in S3 (prevent duplicates)
     4. Pushes remaining local files to S3
     5. Cleans up local files after successful upload
 
-    Args:
         dev_mode: If True, use local dev folder instead of AWS S3
     """
     logger.info("=== Starting SYNC workflow ===")
@@ -623,16 +593,10 @@ def sync_workflow(dev_mode: bool = False) -> None:
 
 
 def complete_workflow(start_date: str, end_date: str, dev_mode: bool = False) -> None:
-    """Complete workflow: Fetch data and sync to S3.
-
-    This runs both fetch and sync workflows in sequence:
+    """
+    Complete workflow: Wrapper around fetching & snycing workflows.
     1. Fetch missing data from Amplitude API
     2. Sync local files to S3 and cleanup
-
-    Args:
-        start_date: Start datetime (format: "YYYYMMDDTHH" or "YYYY-MM-DD_HH")
-        end_date: End datetime (format: "YYYYMMDDTHH" or "YYYY-MM-DD_HH")
-        dev_mode: If True, use local dev folder instead of AWS S3
     """
     logger.info("=== Starting COMPLETE workflow (fetch + sync) ===")
     print("\n=== COMPLETE WORKFLOW (FETCH + SYNC) ===")
