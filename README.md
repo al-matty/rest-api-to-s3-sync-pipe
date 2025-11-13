@@ -1,8 +1,8 @@
 # API to S3 Hourly Syncing and Backfilling
 
-Self-hosted ETL pipeline for REST API → S3. Skip expensive cloud ETL services. Get production-grade features (retry logic, S3 sync, scheduling) in a simple, transparent Python script.
+Self-hosted ETL pipeline for REST API → S3, ready for orchestration with production-grade features, e.g. error code-based retry logic, S3 sync with backfilling and customizable logging.
 
-The pipeline consists of two workflows: **Fetching** (query Amplitude API for hourly event data) and **Syncing** (upload to S3 with duplicate prevention and cleanup). The workflows can be triggered via CLI. Run the commands with the `--dev` flag to simulate s3 as local folder instead. Anything about to be sent to s3 will then go there instead.
+The pipeline consists of two workflows: **Fetching** (query REST API for hourly event data) and **Syncing** (upload to S3 with duplicate prevention and local cleanup). The workflows can be triggered via CLI. Run the commands with the `--dev` flag to simulate s3 as local folder. Anything about to be sent to s3 will then go there instead.
 
 
 ## Fetching Date Range
@@ -14,7 +14,7 @@ The pipeline will ensure data on the s3 bucket is complete in the time range fro
 | `DEFAULT_LOOKBACK_DAYS` | `1` | Days to look back when no date range specified |
 | `DATA_AVAILABILITY_LAG_HOURS` | `12` | API data availability buffer (hours) |
 
-**Default behavior:** `python run.py fetch` retrieves ~25 hours of data ending ~12 hours ago (trying to fetch data that's not available yet might produce 404 errors depending on the API).
+**Default behavior:** `python run.py fetch` retrieves ~25 hours of data ending ~12 hours ago (to account for data availability delays of the endpoint).
 
 ---
 
@@ -23,7 +23,7 @@ The pipeline will ensure data on the s3 bucket is complete in the time range fro
 - **S3 data availability check** - Check S3 for continuous data, adjust query start date if found
 - Generate required hourly files (start → end range)
 - Get existing local files
-- Calculate missing files (required files minus locally available files)
+- Calculate missing files (required files set minus locally available files set)
 - Query Amplitude API for missing hours
 - Save as `data/YYYY-MM-DD_HH.jsonl`
 
@@ -35,8 +35,8 @@ The pipeline will ensure data on the s3 bucket is complete in the time range fro
 - Get local files
 - Get remote S3 files
 - Remove local files already in S3 (prevent duplicates)
-- Push remaining files to S3 (`python-import/` prefix)
-- Cleanup local files after successful upload
+- Push remaining files to S3 (subfolder `python-import/`)
+- Clean up local files after successful upload
 
 ![Syncing Workflow](img/diagram_syncing.png)
 
