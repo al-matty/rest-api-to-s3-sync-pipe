@@ -4,6 +4,18 @@ Self-hosted ETL pipeline for REST API → S3. Skip expensive cloud ETL services.
 
 The pipeline consists of two workflows: **Fetching** (query Amplitude API for hourly event data) and **Syncing** (upload to S3 with duplicate prevention and cleanup). The workflows can be triggered via CLI. Run the commands with the `--dev` flag to simulate s3 as local folder instead. Anything about to be sent to s3 will then go there instead.
 
+
+## Fetching Date Range
+
+The pipeline will ensure data on the s3 bucket is complete in the time range from `DEFAULT_LOOKBACK_DAYS` to `DATA_AVAILABILITY_LAG_HOURS` hours ago. You can set these variables in [utils.py](utils.py):
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `DEFAULT_LOOKBACK_DAYS` | `1` | Days to look back when no date range specified |
+| `DATA_AVAILABILITY_LAG_HOURS` | `12` | API data availability buffer (hours) |
+
+**Default behavior:** `python run.py fetch` retrieves ~25 hours of data ending ~12 hours ago (trying to fetch data that's not available yet might produce 404 errors depending on the API).
+
 ---
 
 ## `Fetching Workflow` - Fetching & Backfilling
