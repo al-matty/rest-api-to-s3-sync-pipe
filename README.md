@@ -8,7 +8,7 @@ The pipeline consists of two workflows: **Fetching** (query Amplitude API for ho
 
 ## `Fetching Workflow` - Fetching & Backfilling
 - `python run.py fetch`
-- **S3 optimization check** - Check S3 for continuous data, adjust start date if found
+- **S3 data availability check** - Check S3 for continuous data, adjust query start date if found
 - Generate required hourly files (start → end range)
 - Get existing local files
 - Calculate missing files (required files minus locally available files)
