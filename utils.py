@@ -131,17 +131,70 @@ def get_local_files(data_dir: str = "data") -> set[str]:
 
 def filename_to_timestamp(filename: str) -> str:
     """Convert filename format to API timestamp format.
-
-    Args:
-        filename: Format like "2025-11-10_21"
-
-    Returns:
-        API timestamp format like "20251110T21"
+    assumes: "2025-11-10_21"
+    returns: "20251110T21"
     """
-    # Parse: "2025-11-10_21" -> "20251110T21"
     date_part, hour_part = filename.rsplit('_', 1)
     clean_date = date_part.replace('-', '')
     return f"{clean_date}T{hour_part}"
+
+
+def batch_consecutive_timestamps(filenames: set[str], max_batch_hours: int | None = None) -> list[tuple[str, str]]:
+    """Batch consecutive hourly timestamps into (start, end) ranges.
+    assumes: Set like {"2025-11-10_21", "2025-11-10_22", "2025-11-10_23"}
+    optional: Maximum hours per batch (default: None = unlimited)
+    returns: List of (start_timestamp, end_timestamp) tuples like [("20251110T21", "20251110T23")]
+    """
+    if not filenames:
+        return []
+
+    # Sort filenames chronologically
+    sorted_files = sorted(filenames)
+    batches = []
+    batch_start = None
+    batch_end = None
+    batch_count = 0
+
+    for filename in sorted_files:
+        # Parse filename to datetime
+        dt = datetime.strptime(filename, "%Y-%m-%d_%H")
+
+        if batch_start is None:
+            # Start new batch
+            batch_start = filename
+            batch_end = filename
+            batch_count = 1
+        else:
+            # Check if consecutive with previous hour
+            prev_dt = datetime.strptime(batch_end, "%Y-%m-%d_%H")
+            from datetime import timedelta
+            expected_next = prev_dt + timedelta(hours=1)
+
+            is_consecutive = (dt == expected_next)
+            exceeds_max = (max_batch_hours is not None and batch_count >= max_batch_hours)
+
+            if is_consecutive and not exceeds_max:
+                # Extend current batch
+                batch_end = filename
+                batch_count += 1
+            else:
+                # Save current batch and start new one
+                batches.append((
+                    filename_to_timestamp(batch_start),
+                    filename_to_timestamp(batch_end)
+                ))
+                batch_start = filename
+                batch_end = filename
+                batch_count = 1
+
+    # Handle last batch
+    if batch_start is not None:
+        batches.append((
+            filename_to_timestamp(batch_start),
+            filename_to_timestamp(batch_end)
+        ))
+
+    return batches
 
 
 def query_difference(
@@ -151,47 +204,54 @@ def query_difference(
     secret_key: str,
     delay_seconds: float,
     max_attempts: int,
-    data_outpath: str
+    data_outpath: str,
+    max_batch_hours: int | None = None
 ) -> None:
     """Fetch and save data for missing hourly files.
 
+    Automatically batches consecutive hours into single API calls to reduce overhead.
+
     Args:
-        missing_files: Set of filenames like {"2025-11-10_21", "2025-11-10_22"}
+        missing_files: Set of filenames, e.g. {"2025-11-10_21", "2025-11-10_22"}
         url: Amplitude API endpoint
         api_key: Amplitude API key
         secret_key: Amplitude secret key
         delay_seconds: Retry delay
         max_attempts: Maximum fetch attempts
         data_outpath: Output directory for data files
+        max_batch_hours: Optional maximum hours per batch (default: None = unlimited)
     """
     if not missing_files:
         logger.info("No missing files to fetch")
         print("All files already exist. Nothing to fetch.")
         return
 
-    logger.info(f"Fetching {len(missing_files)} missing hourly files")
-    print(f"Fetching {len(missing_files)} missing hours...")
+    # Batch consecutive hours to reduce API calls
+    batches = batch_consecutive_timestamps(missing_files, max_batch_hours)
 
-    for filename in sorted(missing_files):
-        timestamp = filename_to_timestamp(filename)
-        logger.info(f"Fetching data for {filename} (timestamp: {timestamp})")
+    logger.info(f"Fetching {len(missing_files)} missing hourly files in {len(batches)} API call(s)")
+    print(f"Fetching {len(missing_files)} missing hours in {len(batches)} batched API call(s)...")
 
-        # Fetch single hour (start = end for hourly data)
+    for start_ts, end_ts in batches:
+        logger.info(f"Fetching batch: {start_ts} to {end_ts}")
+        print(f"  → Batch: {start_ts} to {end_ts}")
+
+        # Fetch time range (API returns ZIP with multiple hours)
         data = fetch(
             url=url,
             api_key=api_key,
             secret_key=secret_key,
             delay_seconds=delay_seconds,
-            start=timestamp,
-            end=timestamp,
+            start=start_ts,
+            end=end_ts,
             max_attempts=max_attempts
         )
 
-        # Write the hourly snapshot
+        # Write all hourly snapshots from this batch
         write_hourly_snapshots(data, data_outpath)
 
-    logger.info(f"Successfully fetched {len(missing_files)} missing files")
-    print(f"✓ Fetched {len(missing_files)} missing hours")
+    logger.info(f"Successfully fetched {len(missing_files)} missing files in {len(batches)} API call(s)")
+    print(f"✓ Fetched {len(missing_files)} hours in {len(batches)} API call(s)")
 
 
 def generate_required_files(start_date: str, end_date: str) -> set[str]:
