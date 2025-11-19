@@ -14,5 +14,5 @@ snowflake_worksheet.sql
 job.sh
 *.sql
 /sql
-Amplitude Data Model.png
+*Data Model.png
 ERD.png
