@@ -12,3 +12,16 @@ claude.md
 .vscode/
 snowflake_worksheet.sql
 job.sh
+*.sql
+/sql
+*Data Model.png
+ERD.png
+
+transform_generated/
+
+# dbt artifacts
+transform/target/
+transform/dbt_packages/
+transform/logs/
+transform/.user.yml
+transform/profiles.yml
