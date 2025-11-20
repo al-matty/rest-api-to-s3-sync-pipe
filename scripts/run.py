@@ -15,8 +15,8 @@ Optional arguments:
 import argparse
 import sys
 from datetime import datetime, timedelta
-from logging_config import setup_logging
-from utils import fetch_workflow, sync_workflow, complete_workflow, DEFAULT_LOOKBACK_DAYS, DATA_AVAILABILITY_LAG_HOURS
+from scripts.logging_config import setup_logging
+from scripts.utils import fetch_workflow, sync_workflow, complete_workflow, DEFAULT_LOOKBACK_DAYS, DATA_AVAILABILITY_LAG_HOURS
 
 # Setup logging
 setup_logging()
