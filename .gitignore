@@ -16,9 +16,7 @@ test_sql/
 ERD.png
 *BAK.sql
 
-# temporarily needed only
-dbt_migration_remaining_tasks.md
-transform_generated/
+# snowflake worksheets
 snowflake_sql/
 
 # dbt artifacts
