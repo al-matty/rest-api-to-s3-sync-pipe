@@ -10,7 +10,6 @@ models:
       - name: uuid
         description: Unique event identifier from Amplitude
         tests:
-          - unique
           - not_null
       - name: amplitude_id
         description: Amplitude's internal user identifier

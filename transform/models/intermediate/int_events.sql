@@ -1,10 +1,11 @@
-{{
+
+{#{
     config(
         materialized='incremental',
         unique_key='event_id',
         on_schema_change='sync_all_columns'
     )
-}}
+}#}
 
 with staging as (
     select * from {{ ref('stg_amplitude_events') }}
