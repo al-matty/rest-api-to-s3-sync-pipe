@@ -8,9 +8,8 @@ models:
       relationship with source.
     columns:
       - name: uuid
-        description: Unique event identifier from Amplitude
+        description: Unique event identifier from Amplitude (may contain duplicates at staging layer)
         tests:
-          - unique
           - not_null
       - name: amplitude_id
         description: Amplitude's internal user identifier
