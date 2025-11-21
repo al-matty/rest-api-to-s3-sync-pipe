@@ -65,5 +65,5 @@ latest_per_user as (
         u.event_time
 )
 
---select * from latest_per_user
-select * from latest_per_user where company is not null
+--select * from latest_per_user where company is not null
+select * from latest_per_user
