@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: stg_amplitude_events
+    description: |
+      Staging model for Amplitude event data. Parses JSON from raw table
+      into typed columns. No transformations applied - maintains 1:1
+      relationship with source. May contain duplicate UUIDs - deduplication
+      happens in the intermediate layer.
+    columns:
+      - name: uuid
+        description: "{{ doc('uuid') }} Note: May contain duplicates at staging layer."
+        tests:
+          - not_null
+      - name: amplitude_id
+        description: "{{ doc('amplitude_id') }}"
+      - name: user_id
+        description: "{{ doc('user_id') }}"
+      - name: device_id
+        description: "{{ doc('device_id') }}"
+      - name: event_id_raw
+        description: "{{ doc('event_id_raw') }}"
+      - name: session_id_raw
+        description: "{{ doc('session_id_raw') }}"
+      - name: event_time
+        description: "{{ doc('event_time') }}"
+        tests:
+          - not_null
+      - name: event_type
+        description: "{{ doc('event_type') }}"
+        tests:
+          - not_null
+      - name: ip_address
+        description: "{{ doc('ip_address') }}"
+      - name: city
+        description: "{{ doc('city') }}"
+      - name: region
+        description: "{{ doc('region') }}"
+      - name: country
+        description: "{{ doc('country') }}"
+      - name: user_properties
+        description: "{{ doc('user_properties') }}"
+      - name: event_properties
+        description: "{{ doc('event_properties') }}"
+      - name: platform
+        description: "{{ doc('platform') }}"
+      - name: os_name
+        description: "{{ doc('os_name') }}"
+      - name: device_type
+        description: "{{ doc('device_type') }}"
+      - name: client_event_time
+        description: "{{ doc('client_event_time') }}"
+      - name: server_received_time
+        description: "{{ doc('server_received_time') }}"
+      - name: os_version
+        description: "{{ doc('os_version') }}"
+      - name: device_family
+        description: "{{ doc('device_family') }}"

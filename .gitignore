@@ -10,14 +10,14 @@ claude.md
 *.pyc
 .DS_Store
 .vscode/
-snowflake_worksheet.sql
 job.sh
-*.sql
-/sql
+test_sql/
 *Data Model.png
 ERD.png
+*BAK.sql
 
-transform_generated/
+# snowflake worksheets
+snowflake_sql/
 
 # dbt artifacts
 transform/target/
