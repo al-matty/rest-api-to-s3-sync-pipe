@@ -5,45 +5,54 @@ models:
     description: |
       Staging model for Amplitude event data. Parses JSON from raw table
       into typed columns. No transformations applied - maintains 1:1
-      relationship with source.
+      relationship with source. May contain duplicate UUIDs - deduplication
+      happens in the intermediate layer.
     columns:
       - name: uuid
-        description: Unique event identifier from Amplitude (may contain duplicates at staging layer)
+        description: "{{ doc('uuid') }} Note: May contain duplicates at staging layer."
         tests:
           - not_null
       - name: amplitude_id
-        description: Amplitude's internal user identifier
+        description: "{{ doc('amplitude_id') }}"
       - name: user_id
-        description: User identifier (often email address)
+        description: "{{ doc('user_id') }}"
       - name: device_id
-        description: Device identifier
+        description: "{{ doc('device_id') }}"
       - name: event_id_raw
-        description: Raw event ID from Amplitude
+        description: "{{ doc('event_id_raw') }}"
       - name: session_id_raw
-        description: Raw session ID from Amplitude
+        description: "{{ doc('session_id_raw') }}"
       - name: event_time
-        description: Timestamp when event occurred
+        description: "{{ doc('event_time') }}"
         tests:
           - not_null
       - name: event_type
-        description: Type of event (session_start, page_viewed, etc.)
+        description: "{{ doc('event_type') }}"
         tests:
           - not_null
       - name: ip_address
-        description: IP address of the event
+        description: "{{ doc('ip_address') }}"
       - name: city
-        description: City from IP geolocation
+        description: "{{ doc('city') }}"
       - name: region
-        description: Region/state from IP geolocation
+        description: "{{ doc('region') }}"
       - name: country
-        description: Country from IP geolocation
+        description: "{{ doc('country') }}"
       - name: user_properties
-        description: User-level properties as VARIANT/JSON
+        description: "{{ doc('user_properties') }}"
       - name: event_properties
-        description: Event-level properties as VARIANT/JSON
+        description: "{{ doc('event_properties') }}"
       - name: platform
-        description: Platform (Web, iOS, Android, etc.)
+        description: "{{ doc('platform') }}"
       - name: os_name
-        description: Operating system name
+        description: "{{ doc('os_name') }}"
       - name: device_type
-        description: Device type (Mac, Windows, Mobile, etc.)
+        description: "{{ doc('device_type') }}"
+      - name: client_event_time
+        description: "{{ doc('client_event_time') }}"
+      - name: server_received_time
+        description: "{{ doc('server_received_time') }}"
+      - name: os_version
+        description: "{{ doc('os_version') }}"
+      - name: device_family
+        description: "{{ doc('device_family') }}"

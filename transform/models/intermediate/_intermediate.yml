@@ -2,169 +2,177 @@ version: 2
 
 models:
   - name: int_ip_addresses
-    description: Unique IP addresses from events
+    description: Unique IP addresses from events. {{ doc('surrogate_key_methodology') }}
     columns:
       - name: ip_address_id
-        description: Surrogate key generated from IP address
+        description: "{{ doc('ip_address_id') }}"
         tests:
           - unique
           - not_null
       - name: ip_address
-        description: IP address (IPv4 or IPv6)
+        description: "{{ doc('ip_address') }}"
         tests:
           - unique
           - not_null
 
   - name: int_users
-    description: User dimension with latest device and IP per amplitude_id
+    description: User dimension with latest device and IP per amplitude_id. Uses ROW_NUMBER to keep most recent record.
     columns:
       - name: amplitude_id
-        description: Amplitude's internal user identifier (primary key)
+        description: "{{ doc('amplitude_id') }} Primary key for this table."
         tests:
           - unique
           - not_null
       - name: user_id
-        description: User identifier (often email address)
+        description: "{{ doc('user_id') }}"
       - name: device_id
-        description: Device identifier
+        description: "{{ doc('device_id') }}"
       - name: ip_address_id
-        description: Foreign key to IP addresses
+        description: "{{ doc('ip_address_id') }}"
         tests:
           - relationships:
               to: ref('int_ip_addresses')
               field: ip_address_id
       - name: company
-        description: Company name enriched from email domain (NULL until int_companies runs)
+        description: "{{ doc('company') }} NULL until enriched by int_companies model."
       - name: last_seen
-        description: Timestamp of most recent event for this user
+        description: "{{ doc('last_seen') }}"
 
   - name: int_sessions
-    description: Sessionized events with aggregated metrics and user journey paths
+    description: |
+      Sessionized events with aggregated metrics and user journey paths.
+      {{ doc('incremental_strategy') }}
     columns:
       - name: session_id
-        description: Surrogate key from session_id_raw + amplitude_id
+        description: "{{ doc('session_id') }}"
         tests:
           - unique
           - not_null
       - name: session_id_raw
-        description: Raw session ID from Amplitude
+        description: "{{ doc('session_id_raw') }}"
         tests:
           - not_null
       - name: amplitude_id
-        description: Amplitude user identifier
+        description: "{{ doc('amplitude_id') }}"
         tests:
           - not_null
           - relationships:
               to: ref('int_users')
               field: amplitude_id
       - name: user_id
-        description: User identifier from session
+        description: "{{ doc('user_id') }}"
       - name: device_id
-        description: Device identifier from session
+        description: "{{ doc('device_id') }}"
       - name: session_start
-        description: Timestamp of first event in session
+        description: "{{ doc('session_start') }}"
         tests:
           - not_null
       - name: session_end
-        description: Timestamp of last event in session
+        description: "{{ doc('session_end') }}"
         tests:
           - not_null
       - name: event_count
-        description: Number of events in this session
+        description: "{{ doc('event_count') }}"
       - name: user_journey
-        description: Concatenated page paths showing user navigation flow
+        description: "{{ doc('user_journey') }}"
       - name: location_id
-        description: Surrogate key from city, region, country
+        description: "{{ doc('location_id') }}"
 
   - name: int_event_properties
-    description: Unique event property combinations extracted from JSON
+    description: Unique event property combinations extracted from JSON. {{ doc('surrogate_key_methodology') }}
     columns:
       - name: event_properties_id
-        description: Surrogate key from full event properties JSON
+        description: "{{ doc('event_properties_id') }}"
         tests:
           - unique
           - not_null
       - name: properties_json
-        description: Full event properties as VARIANT/JSON
+        description: "{{ doc('properties_json') }}"
       - name: url
-        description: Page URL (extracted from Amplitude Page URL property)
+        description: "{{ doc('url') }}"
       - name: referrer
-        description: Referrer URL
+        description: "{{ doc('referrer') }}"
       - name: referring_domain
-        description: Referring domain
+        description: "{{ doc('referring_domain') }}"
       - name: element_text
-        description: Text of clicked element
+        description: "{{ doc('element_text') }}"
       - name: page_title
-        description: Page title
+        description: "{{ doc('page_title') }}"
 
   - name: int_events
-    description: Deduplicated event fact table with foreign keys to all dimensions
+    description: |
+      Deduplicated event fact table with foreign keys to all dimensions.
+      {{ doc('deduplication_note') }}
+      {{ doc('incremental_strategy') }}
     columns:
       - name: event_id
-        description: Surrogate key from UUID
+        description: "{{ doc('event_id') }}"
         tests:
           - unique
           - not_null
       - name: event_id_raw
-        description: Raw event ID from Amplitude
+        description: "{{ doc('event_id_raw') }}"
       - name: session_id
-        description: Foreign key to sessions
+        description: "{{ doc('session_id') }}"
         tests:
           - relationships:
               to: ref('int_sessions')
               field: session_id
       - name: session_id_raw
-        description: Raw session ID
+        description: "{{ doc('session_id_raw') }}"
       - name: amplitude_id
-        description: Foreign key to users
+        description: "{{ doc('amplitude_id') }}"
         tests:
           - not_null
           - relationships:
               to: ref('int_users')
               field: amplitude_id
       - name: ip_address_id
-        description: Foreign key to IP addresses
+        description: "{{ doc('ip_address_id') }}"
         tests:
           - relationships:
               to: ref('int_ip_addresses')
               field: ip_address_id
       - name: event_time
-        description: Timestamp when event occurred
+        description: "{{ doc('event_time') }}"
         tests:
           - not_null
       - name: event_type
-        description: Type of event (e.g., page_view, session_start)
+        description: "{{ doc('event_type') }}"
         tests:
           - not_null
       - name: user_properties_id
-        description: Surrogate key from user properties JSON
+        description: "{{ doc('user_properties_id') }}"
       - name: event_properties_id
-        description: Foreign key to event properties
+        description: "{{ doc('event_properties_id') }}"
         tests:
           - relationships:
               to: ref('int_event_properties')
               field: event_properties_id
       - name: company_name
-        description: Denormalized company name from users
+        description: "{{ doc('company_name') }}"
       - name: uuid
-        description: Unique event identifier from Amplitude
+        description: "{{ doc('uuid') }}"
         tests:
           - unique
           - not_null
 
   - name: int_companies
-    description: Companies extracted from email domains, unique per (company, IP address)
+    description: |
+      Companies extracted from email domains, unique per (company, IP address).
+      Consumer email providers (gmail.com, yahoo.com, etc.) are filtered out.
+      {{ doc('surrogate_key_methodology') }}
     columns:
       - name: company_id
-        description: Surrogate key from company name + IP address
+        description: "{{ doc('company_id') }}"
         tests:
           - unique
           - not_null
       - name: company
-        description: Company domain extracted from email (e.g., 'example.com')
+        description: "{{ doc('company') }}"
         tests:
           - not_null
       - name: ip_address
-        description: IP address associated with this company
+        description: "{{ doc('ip_address') }}"
         tests:
           - not_null
