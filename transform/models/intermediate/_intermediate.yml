@@ -14,5 +14,6 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('int_users')
-              field: amplitude_id
+              arguments:
+                to: ref('int_users')
+                field: amplitude_id
