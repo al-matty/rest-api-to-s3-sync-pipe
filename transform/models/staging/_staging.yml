@@ -1,0 +1,50 @@
+version: 2
+
+models:
+  - name: stg_amplitude_events
+    description: |
+      Staging model for Amplitude event data. Parses JSON from raw table
+      into typed columns. No transformations applied - maintains 1:1
+      relationship with source.
+    columns:
+      - name: uuid
+        description: Unique event identifier from Amplitude
+        tests:
+          - unique
+          - not_null
+      - name: amplitude_id
+        description: Amplitude's internal user identifier
+      - name: user_id
+        description: User identifier (often email address)
+      - name: device_id
+        description: Device identifier
+      - name: event_id_raw
+        description: Raw event ID from Amplitude
+      - name: session_id_raw
+        description: Raw session ID from Amplitude
+      - name: event_time
+        description: Timestamp when event occurred
+        tests:
+          - not_null
+      - name: event_type
+        description: Type of event (session_start, page_viewed, etc.)
+        tests:
+          - not_null
+      - name: ip_address
+        description: IP address of the event
+      - name: city
+        description: City from IP geolocation
+      - name: region
+        description: Region/state from IP geolocation
+      - name: country
+        description: Country from IP geolocation
+      - name: user_properties
+        description: User-level properties as VARIANT/JSON
+      - name: event_properties
+        description: Event-level properties as VARIANT/JSON
+      - name: platform
+        description: Platform (Web, iOS, Android, etc.)
+      - name: os_name
+        description: Operating system name
+      - name: device_type
+        description: Device type (Mac, Windows, Mobile, etc.)

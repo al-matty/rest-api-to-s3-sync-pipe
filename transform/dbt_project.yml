@@ -46,3 +46,6 @@ models:
       int_events:
         +materialized: incremental
         +unique_key: event_id
+      int_sessions:
+        +materialized: incremental
+        +unique_key: session_id
