@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: int_events
+    description: Deduplicated event fact table
+    columns:
+      - name: event_id
+        description: Hash of uuid
+        tests:
+          - unique
+          - not_null
+      - name: amplitude_id
+        description: Amplitude user identifier
+        tests:
+          - not_null
+          - relationships:
+              to: ref('int_users')
+              field: amplitude_id
