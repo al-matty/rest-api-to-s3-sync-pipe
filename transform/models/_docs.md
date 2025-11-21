@@ -211,3 +211,130 @@ This model deduplicates events by UUID using a ROW_NUMBER() window function, kee
 {% docs incremental_strategy %}
 This model uses incremental materialization to improve performance. On incremental runs, it only processes events with `event_time > max(event_time)` from the existing table. Use `dbt run --full-refresh` to rebuild from scratch.
 {% enddocs %}
+
+<!-- Model-Level Documentation -->
+
+{% docs int_events_model %}
+## Deduplicated Event Fact Table
+
+Core fact table containing all Amplitude events with deduplication and enrichment.
+
+### Key Features
+- **Deduplication**: Uses UUID with ROW_NUMBER() to remove duplicates (keeps most recent by event_time)
+- **Incremental**: Only processes events with `event_time > max(event_time)` from existing table
+- **Surrogate Keys**: Generates FK relationships to dimension tables (users, sessions, IP addresses, event properties)
+- **Denormalization**: Includes `company_name` from users table for query performance
+
+### Dependencies
+- `stg_amplitude_events` (source data)
+- `int_users` (for company enrichment)
+
+### Refresh Strategy
+Run incrementally on a regular schedule (hourly/daily). Use `--full-refresh` for historical backfills.
+{% enddocs %}
+
+{% docs int_users_model %}
+## User Dimension Table
+
+User dimension with latest device, IP address, and company information for each unique Amplitude user.
+
+### Key Features
+- **Grain**: One row per `amplitude_id`
+- **Latest State**: Uses most recent event per user (by `event_time`)
+- **Company Matching**: Prioritizes company matching user's email domain, falls back to first alphabetically
+- **Foreign Keys**: Links to `int_ip_addresses` via `ip_address_id`
+
+### Logic
+1. Ranks events by `amplitude_id` and `event_time DESC`
+2. Extracts company from email domain (`user_id`)
+3. Matches with companies table, preferring email domain match
+4. Captures latest `device_id`, `ip_address_id`, and `last_seen` timestamp
+
+### Usage
+Join to `int_events` on `amplitude_id` for user attributes and company information.
+{% enddocs %}
+
+{% docs int_sessions_model %}
+## Session Aggregation Table
+
+Sessionized events aggregated by Amplitude's session identifiers.
+
+### Key Features
+- **Incremental**: Only processes events with `event_time > max(session_end)` from existing table
+- **Session Grain**: One row per unique `session_id` (hash of `session_id_raw || amplitude_id`)
+- **User Journey**: LISTAGG of page paths showing navigation flow through session
+- **Aggregations**: Session start/end times, event count, location
+
+### Columns Generated
+- `session_start`: First event timestamp in session
+- `session_end`: Last event timestamp in session
+- `event_count`: Total events in session
+- `user_journey`: Concatenated page paths (ordered by event_time)
+- `location_id`: Surrogate key for city/region/country combination
+
+### Refresh Strategy
+Run incrementally to capture new sessions. Use `--full-refresh` for recalculating historical sessions.
+{% enddocs %}
+
+{% docs int_ip_addresses_model %}
+## IP Address Dimension Table
+
+Simple dimension table of unique IP addresses with surrogate keys.
+
+### Key Features
+- **Grain**: One row per unique IP address
+- **Purpose**: Provides consistent `ip_address_id` for FK relationships
+- **Source**: Distinct IP addresses from all staging events
+
+### Usage
+- Referenced by `int_users` and `int_companies` for IP-based relationships
+- Enables tracking user activity by IP address
+- Supports geolocation analysis (IP → city/region/country)
+{% enddocs %}
+
+{% docs int_event_properties_model %}
+## Event Properties Dimension Table
+
+Distinct combinations of event properties with commonly extracted fields.
+
+### Key Features
+- **Grain**: One row per unique event properties JSON object
+- **Extracted Fields**: Commonly used properties parsed from JSON (URL, referrer, element text, page title)
+- **Truncation**: Field lengths limited for database efficiency (URL: 1000 chars, referrer: 1000 chars, etc.)
+- **Surrogate Key**: MD5 hash of full `event_properties` JSON
+
+### Extracted Fields
+- `url`: Page URL from `[Amplitude] Page URL`
+- `referrer`: Referrer URL
+- `referring_domain`: Domain extracted from referrer
+- `element_text`: Clicked element text from `[Amplitude] Element Text`
+- `page_title`: Browser page title from `[Amplitude] Page Title`
+- `properties_json`: Full VARIANT/JSON for custom queries
+
+### Usage
+Join to `int_events` on `event_properties_id` to access parsed event properties without JSON parsing overhead.
+{% enddocs %}
+
+{% docs int_companies_model %}
+## Company Dimension Table
+
+Companies extracted from user email domains, filtered to exclude consumer email providers.
+
+### Key Features
+- **Extraction Logic**: Parses domain from `user_id` (email address) using `split_part(@, 2)`
+- **Consumer Filtering**: Excludes gmail.com, yahoo.com, outlook.com, etc. (14 common providers)
+- **IP Association**: Links companies to IP addresses (one company can have multiple IPs)
+- **Surrogate Key**: MD5 hash of `company || ip_address`
+
+### Business Logic
+Identifies organizational users by filtering out consumer email providers. Useful for:
+- B2B analytics (excluding personal email users)
+- Company-level aggregations
+- Account-based tracking
+
+### Excluded Domains
+Gmail, Yahoo, Hotmail, Outlook, AOL, iCloud, Mail.com, ProtonMail, Live, MSN, Ymail, GoogleMail, Me.com, Mac.com, Comcast, Verizon
+
+### Usage
+Join to `int_users` on `company` field to enrich user dimension with company information.
+{% enddocs %}

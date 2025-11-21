@@ -2,18 +2,178 @@ version: 2
 
 models:
   - name: int_events
-    description: Deduplicated event fact table
+    description: "{{ doc('int_events_model') }}"
     columns:
       - name: event_id
-        description: Hash of uuid
+        description: "{{ doc('event_id') }}"
         tests:
           - unique
           - not_null
-      - name: amplitude_id
-        description: Amplitude user identifier
+      - name: event_id_raw
+        description: "{{ doc('event_id_raw') }}"
+      - name: session_id
+        description: "{{ doc('session_id') }}"
         tests:
           - not_null
           - relationships:
-              arguments:  
-                to: ref('int_users')
-                field: amplitude_id
+              to: ref('int_sessions')
+              field: session_id
+      - name: session_id_raw
+        description: "{{ doc('session_id_raw') }}"
+      - name: amplitude_id
+        description: "{{ doc('amplitude_id') }}"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('int_users')
+              field: amplitude_id
+      - name: ip_address_id
+        description: "{{ doc('ip_address_id') }}"
+        tests:
+          - relationships:
+              to: ref('int_ip_addresses')
+              field: ip_address_id
+      - name: event_time
+        description: "{{ doc('event_time') }}"
+        tests:
+          - not_null
+      - name: event_type
+        description: "{{ doc('event_type') }}"
+        tests:
+          - not_null
+      - name: user_properties_id
+        description: "{{ doc('user_properties_id') }}"
+      - name: event_properties_id
+        description: "{{ doc('event_properties_id') }}"
+        tests:
+          - relationships:
+              to: ref('int_event_properties')
+              field: event_properties_id
+      - name: company_name
+        description: "{{ doc('company_name') }}"
+      - name: uuid
+        description: |
+          {{ doc('uuid') }}
+
+          {{ doc('deduplication_note') }}
+
+  - name: int_users
+    description: "{{ doc('int_users_model') }}"
+    columns:
+      - name: amplitude_id
+        description: "{{ doc('amplitude_id') }}"
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "{{ doc('user_id') }}"
+      - name: device_id
+        description: "{{ doc('device_id') }}"
+      - name: ip_address_id
+        description: "{{ doc('ip_address_id') }}"
+        tests:
+          - relationships:
+              to: ref('int_ip_addresses')
+              field: ip_address_id
+      - name: company
+        description: "{{ doc('company') }}"
+      - name: last_seen
+        description: "{{ doc('last_seen') }}"
+        tests:
+          - not_null
+
+  - name: int_sessions
+    description: "{{ doc('int_sessions_model') }}"
+    columns:
+      - name: session_id
+        description: "{{ doc('session_id') }}"
+        tests:
+          - unique
+          - not_null
+      - name: session_id_raw
+        description: "{{ doc('session_id_raw') }}"
+        tests:
+          - not_null
+      - name: amplitude_id
+        description: "{{ doc('amplitude_id') }}"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('int_users')
+              field: amplitude_id
+      - name: user_id
+        description: "{{ doc('user_id') }}"
+      - name: device_id
+        description: "{{ doc('device_id') }}"
+      - name: session_start
+        description: "{{ doc('session_start') }}"
+        tests:
+          - not_null
+      - name: session_end
+        description: "{{ doc('session_end') }}"
+        tests:
+          - not_null
+      - name: event_count
+        description: "{{ doc('event_count') }}"
+        tests:
+          - not_null
+      - name: user_journey
+        description: "{{ doc('user_journey') }}"
+      - name: location_id
+        description: "{{ doc('location_id') }}"
+        tests:
+          - not_null
+
+  - name: int_ip_addresses
+    description: "{{ doc('int_ip_addresses_model') }}"
+    columns:
+      - name: ip_address_id
+        description: "{{ doc('ip_address_id') }}"
+        tests:
+          - unique
+          - not_null
+      - name: ip_address
+        description: "{{ doc('ip_address') }}"
+        tests:
+          - unique
+          - not_null
+
+  - name: int_event_properties
+    description: "{{ doc('int_event_properties_model') }}"
+    columns:
+      - name: event_properties_id
+        description: "{{ doc('event_properties_id') }}"
+        tests:
+          - unique
+          - not_null
+      - name: properties_json
+        description: "{{ doc('properties_json') }}"
+        tests:
+          - not_null
+      - name: url
+        description: "{{ doc('url') }}"
+      - name: referrer
+        description: "{{ doc('referrer') }}"
+      - name: referring_domain
+        description: "{{ doc('referring_domain') }}"
+      - name: element_text
+        description: "{{ doc('element_text') }}"
+      - name: page_title
+        description: "{{ doc('page_title') }}"
+
+  - name: int_companies
+    description: "{{ doc('int_companies_model') }}"
+    columns:
+      - name: company_id
+        description: "{{ doc('company_id') }}"
+        tests:
+          - unique
+          - not_null
+      - name: company
+        description: "{{ doc('company') }}"
+        tests:
+          - not_null
+      - name: ip_address
+        description: "{{ doc('ip_address') }}"
+        tests:
+          - not_null
