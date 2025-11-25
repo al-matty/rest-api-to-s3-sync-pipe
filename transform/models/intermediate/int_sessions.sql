@@ -7,7 +7,7 @@
 }}
 
 with staging as (
-    select * from {{ ref('stg_amplitude_events') }}
+    select * from {{ ref('stg_events') }}
     {% if is_incremental() %}
     where event_time > (select max(session_end) from {{ this }})
     {% endif %}

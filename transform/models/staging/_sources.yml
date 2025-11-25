@@ -5,7 +5,7 @@ sources:
     database: TIL_DATA_ENGINEERING
     schema: matt_staging
     tables:
-      - name: amplitude_events_raw_python
+      - name: events_raw
         description: Raw Amplitude event data ingested from S3
         columns:
           - name: json_data

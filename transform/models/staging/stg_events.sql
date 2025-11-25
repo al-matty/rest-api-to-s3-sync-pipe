@@ -1,5 +1,5 @@
 with source as (
-    select * from {{ source('matt_staging', 'amplitude_events_raw_python') }}
+    select * from {{ source('matt_staging', 'events_raw') }}
 ),
 
 parsed as (
