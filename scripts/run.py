@@ -50,7 +50,7 @@ def get_amplitude_default_dates(lookback_days=DEFAULT_LOOKBACK_DAYS):
 
 def run_amplitude(args):
     """Execute Amplitude commands."""
-    default_start, default_end = get_amplitude_default_dates()
+    default_start, default_end = get_amplitude_default_dates(args.lookback_days)
     start_date = args.start_date or default_start
     end_date = args.end_date or default_end
 
@@ -144,6 +144,12 @@ Examples:
         "--dev",
         action="store_true",
         help="Development mode: use local s3_dev/ folder"
+    )
+    amp_parser.add_argument(
+        "--lookback-days",
+        type=int,
+        default=DEFAULT_LOOKBACK_DAYS,
+        help=f"Days to look back for data (default: {DEFAULT_LOOKBACK_DAYS})"
     )
 
     # ==========================================================================
