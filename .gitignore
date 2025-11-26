@@ -16,6 +16,7 @@ test_sql/
 ERD.png
 *BAK.sql
 docs/
+*EXAMPLE.jsonl
 
 # snowflake worksheets
 snowflake_sql/
