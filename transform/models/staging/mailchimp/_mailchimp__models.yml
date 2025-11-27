@@ -1,0 +1,108 @@
+version: 2
+
+models:
+  - name: stg_mailchimp__campaigns
+    description: Staged Mailchimp campaign metadata
+    columns:
+      - name: campaign_id
+        description: Unique campaign identifier
+        data_tests:
+          - unique
+          - not_null
+      - name: list_id
+        description: Mailchimp audience list ID
+      - name: type
+        description: Campaign type (regular, etc.)
+      - name: status
+        description: Campaign status (sent, scheduled, draft, etc.)
+      - name: subject_line
+        description: Email subject line
+      - name: from_name
+        description: Sender display name
+      - name: from_email
+        description: Sender email address
+      - name: send_time
+        description: When the campaign was sent
+      - name: emails_sent
+        description: Total recipients
+
+  - name: stg_mailchimp__campaign_reports
+    description: Staged Mailchimp campaign performance reports (1:1 with campaigns)
+    columns:
+      - name: campaign_id
+        description: Campaign identifier (FK to campaigns)
+        data_tests:
+          - unique
+          - not_null
+      - name: emails_sent
+        description: Total recipients
+      - name: unique_opens
+        description: Distinct users who opened
+      - name: opens_total
+        description: All open events
+      - name: open_rate
+        description: unique_opens / emails_sent
+      - name: unique_clicks
+        description: Distinct users who clicked
+      - name: clicks_total
+        description: All click events
+      - name: click_rate
+        description: unique_clicks / emails_sent
+      - name: unsubscribed
+        description: Users who unsubscribed from this campaign
+
+  - name: stg_mailchimp__subscribers
+    description: Staged Mailchimp email subscribers
+    columns:
+      - name: subscriber_hash
+        description: MD5 hash of lowercase email (Mailchimp's subscriber ID)
+        data_tests:
+          - unique
+          - not_null
+      - name: list_id
+        description: Mailchimp audience list ID
+      - name: email_address
+        description: Subscriber email address (lowercase)
+        data_tests:
+          - not_null
+      - name: status
+        description: Subscription status (subscribed, unsubscribed, cleaned, pending)
+      - name: timestamp_opt
+        description: When the subscriber opted in
+      - name: last_changed
+        description: Last profile update timestamp
+      - name: merge_fields
+        description: Full merge fields JSON object
+      - name: first_name
+        description: First name (extracted from merge_fields.FNAME)
+      - name: last_name
+        description: Last name (extracted from merge_fields.LNAME)
+      - name: company
+        description: Company name (extracted from merge_fields.COMPANY)
+
+  - name: stg_mailchimp__clicks
+    description: Staged Mailchimp email click events (aggregated per subscriber + URL + campaign)
+    columns:
+      - name: click_id
+        description: Surrogate key (hash of campaign_id + subscriber_hash + url_id)
+        data_tests:
+          - unique
+          - not_null
+      - name: campaign_id
+        description: Campaign identifier
+        data_tests:
+          - not_null
+      - name: subscriber_hash
+        description: Subscriber identifier (FK to subscribers)
+        data_tests:
+          - not_null
+      - name: email_address
+        description: Subscriber email address (lowercase, denormalized)
+      - name: url_id
+        description: Mailchimp link identifier
+        data_tests:
+          - not_null
+      - name: url
+        description: Full clicked URL
+      - name: click_count
+        description: Total clicks by this subscriber on this URL
