@@ -10,5 +10,41 @@ sources:
         columns:
           - name: json_data
             description: VARIANT column containing full event payload
-            tests:
+            data_tests:
+              - not_null
+
+      - name: mailchimp_campaigns_raw
+        identifier: matt_mailchimp_campaigns_raw
+        description: Raw Mailchimp campaign metadata from S3
+        columns:
+          - name: json_data
+            description: VARIANT column containing campaign payload
+            data_tests:
+              - not_null
+
+      - name: mailchimp_campaign_reports_raw
+        identifier: matt_mailchimp_campaign_reports_raw
+        description: Raw Mailchimp campaign performance reports from S3
+        columns:
+          - name: json_data
+            description: VARIANT column containing report payload
+            data_tests:
+              - not_null
+
+      - name: mailchimp_subscribers_raw
+        identifier: matt_mailchimp_subscribers_raw
+        description: Raw Mailchimp email subscriber data from S3
+        columns:
+          - name: json_data
+            description: VARIANT column containing subscriber payload
+            data_tests:
+              - not_null
+
+      - name: mailchimp_clicks_raw
+        identifier: matt_mailchimp_clicks_raw
+        description: Raw Mailchimp email click events from S3
+        columns:
+          - name: json_data
+            description: VARIANT column containing click event payload
+            data_tests:
               - not_null
