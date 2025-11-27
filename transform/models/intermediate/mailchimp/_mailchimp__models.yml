@@ -1,0 +1,119 @@
+version: 2
+
+models:
+  - name: int_mailchimp__campaigns
+    description: Denormalized campaign dimension combining campaigns + reports (1:1 relationship)
+    columns:
+      - name: campaign_id
+        description: Unique campaign identifier
+        data_tests:
+          - unique
+          - not_null
+      - name: list_id
+        description: Mailchimp audience list ID
+      - name: type
+        description: Campaign type (regular, etc.)
+      - name: status
+        description: Campaign status (sent, scheduled, draft, etc.)
+      - name: subject_line
+        description: Email subject line
+      - name: from_name
+        description: Sender display name
+      - name: from_email
+        description: Sender email address
+      - name: send_time
+        description: When the campaign was sent
+      - name: emails_sent
+        description: Total recipients
+      - name: unique_opens
+        description: Distinct users who opened
+      - name: opens_total
+        description: All open events
+      - name: open_rate
+        description: unique_opens / emails_sent
+      - name: unique_clicks
+        description: Distinct users who clicked
+      - name: clicks_total
+        description: All click events
+      - name: click_rate
+        description: unique_clicks / emails_sent
+      - name: unsubscribed
+        description: Users who unsubscribed from this campaign
+
+  - name: int_mailchimp__subscribers
+    description: Subscriber dimension with derived fields for analytics
+    columns:
+      - name: subscriber_hash
+        description: MD5 hash of lowercase email (Mailchimp's subscriber ID)
+        data_tests:
+          - unique
+          - not_null
+      - name: list_id
+        description: Mailchimp audience list ID
+      - name: email_address
+        description: Subscriber email address (lowercase)
+        data_tests:
+          - not_null
+      - name: status
+        description: Subscription status (subscribed, unsubscribed, cleaned, pending)
+      - name: timestamp_opt
+        description: When the subscriber opted in
+      - name: last_changed
+        description: Last profile update timestamp
+      - name: merge_fields
+        description: Full merge fields JSON object
+      - name: first_name
+        description: First name (from merge_fields.FNAME)
+      - name: last_name
+        description: Last name (from merge_fields.LNAME)
+      - name: company
+        description: Company name (from merge_fields.COMPANY)
+      - name: email_domain
+        description: Domain extracted from email address (for company matching)
+      - name: is_active
+        description: Boolean - true if status is 'subscribed'
+      - name: full_name
+        description: Concatenated first_name + last_name
+      - name: subscription_days
+        description: Days since opt-in (timestamp_opt to current date)
+
+  - name: int_mailchimp__clicks
+    description: Click fact table enriched with campaign and subscriber context
+    columns:
+      - name: click_id
+        description: Surrogate key (hash of campaign_id + subscriber_hash + url_id)
+        data_tests:
+          - unique
+          - not_null
+      - name: campaign_id
+        description: Campaign identifier
+        data_tests:
+          - not_null
+      - name: subscriber_hash
+        description: Subscriber identifier
+        data_tests:
+          - not_null
+      - name: email_address
+        description: Subscriber email address (denormalized)
+      - name: url_id
+        description: Mailchimp link identifier
+        data_tests:
+          - not_null
+      - name: url
+        description: Full clicked URL
+      - name: click_count
+        description: Total clicks by this subscriber on this URL
+      - name: campaign_subject
+        description: Email subject line (from campaign)
+      - name: campaign_send_time
+        description: When campaign was sent (from campaign)
+      - name: campaign_status
+        description: Campaign status (from campaign)
+      - name: subscriber_name
+        description: Full name (from subscriber)
+      - name: subscriber_company
+        description: Company (from subscriber)
+      - name: subscriber_is_active
+        description: Is subscriber active (from subscriber)
+      - name: url_domain
+        description: Domain extracted from clicked URL

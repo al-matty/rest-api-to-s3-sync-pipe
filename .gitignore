@@ -17,6 +17,7 @@ ERD.png
 *BAK.sql
 docs/
 *EXAMPLE.jsonl
+profiles.yml
 
 # snowflake worksheets
 snowflake_sql/
