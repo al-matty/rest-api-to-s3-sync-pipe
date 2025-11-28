@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: mart_mailchimp__campaign_performance
+    description: >
+      Campaign performance metrics answering key marketing questions:
+      1) Are users clicking emails multiple times?
+      2) What percentage of recipients click?
+      3) Which topics (subjects) lead to most clicks?
+    columns:
+      - name: campaign_id
+        description: Unique campaign identifier
+        data_tests:
+          - unique
+          - not_null
+      - name: subject_line
+        description: Email subject line (topic indicator)
+      - name: send_time
+        description: When the campaign was sent
+      - name: status
+        description: Campaign status (filtered to 'sent' only)
+      - name: emails_sent
+        description: Total recipients
+      - name: unique_clicks
+        description: Distinct users who clicked (from campaign reports)
+      - name: clicks_total
+        description: All click events (from campaign reports)
+      - name: click_rate
+        description: Percentage of recipients who clicked (unique_clicks / emails_sent)
+      - name: multi_clickers
+        description: Count of users who clicked the same URL more than once
+      - name: total_clicks
+        description: Sum of all click_count values from click details
+      - name: multi_click_pct
+        description: Percentage of clickers who clicked multiple times
+      - name: unique_opens
+        description: Distinct users who opened
+      - name: open_rate
+        description: Percentage of recipients who opened

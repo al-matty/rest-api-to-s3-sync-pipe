@@ -47,3 +47,6 @@ models:
         int_amplitude__events:
           +materialized: incremental
           +unique_key: event_id
+    marts:
+      +materialized: table
+      +schema: gold
