@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: int_events
+  - name: int_amplitude__events
     description: "{{ doc('int_events_model') }}"
     columns:
       - name: event_id
@@ -16,7 +16,7 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('int_sessions')
+              to: ref('int_amplitude__sessions')
               field: session_id
       - name: session_id_raw
         description: "{{ doc('session_id_raw') }}"
@@ -25,13 +25,13 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('int_users')
+              to: ref('int_amplitude__users')
               field: amplitude_id
       - name: ip_address_id
         description: "{{ doc('ip_address_id') }}"
         tests:
           - relationships:
-              to: ref('int_ip_addresses')
+              to: ref('int_amplitude__ip_addresses')
               field: ip_address_id
       - name: event_time
         description: "{{ doc('event_time') }}"
@@ -47,7 +47,7 @@ models:
         description: "{{ doc('event_properties_id') }}"
         tests:
           - relationships:
-              to: ref('int_event_properties')
+              to: ref('int_amplitude__event_properties')
               field: event_properties_id
       - name: company_name
         description: "{{ doc('company_name') }}"
@@ -57,7 +57,7 @@ models:
 
           {{ doc('deduplication_note') }}
 
-  - name: int_users
+  - name: int_amplitude__users
     description: "{{ doc('int_users_model') }}"
     columns:
       - name: amplitude_id
@@ -73,7 +73,7 @@ models:
         description: "{{ doc('ip_address_id') }}"
         tests:
           - relationships:
-              to: ref('int_ip_addresses')
+              to: ref('int_amplitude__ip_addresses')
               field: ip_address_id
       - name: company
         description: "{{ doc('company') }}"
@@ -82,7 +82,7 @@ models:
         tests:
           - not_null
 
-  - name: int_sessions
+  - name: int_amplitude__sessions
     description: "{{ doc('int_sessions_model') }}"
     columns:
       - name: session_id
@@ -99,7 +99,7 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('int_users')
+              to: ref('int_amplitude__users')
               field: amplitude_id
       - name: user_id
         description: "{{ doc('user_id') }}"
@@ -124,7 +124,7 @@ models:
         tests:
           - not_null
 
-  - name: int_ip_addresses
+  - name: int_amplitude__ip_addresses
     description: "{{ doc('int_ip_addresses_model') }}"
     columns:
       - name: ip_address_id
@@ -138,7 +138,7 @@ models:
           - unique
           - not_null
 
-  - name: int_event_properties
+  - name: int_amplitude__event_properties
     description: "{{ doc('int_event_properties_model') }}"
     columns:
       - name: event_properties_id
@@ -161,7 +161,7 @@ models:
       - name: page_title
         description: "{{ doc('page_title') }}"
 
-  - name: int_companies
+  - name: int_amplitude__companies
     description: "{{ doc('int_companies_model') }}"
     columns:
       - name: company_id

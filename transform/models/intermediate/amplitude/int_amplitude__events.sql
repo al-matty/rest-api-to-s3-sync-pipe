@@ -8,14 +8,14 @@
 }#}
 
 with staging as (
-    select * from {{ ref('stg_amplitude_events') }}
+    select * from {{ ref('stg_amplitude__events') }}
     {% if is_incremental() %}
     where event_time > (select max(event_time) from {{ this }})
     {% endif %}
 ),
 
 users as (
-    select * from {{ ref('int_users') }}
+    select * from {{ ref('int_amplitude__users') }}
 ),
 
 deduplicated as (

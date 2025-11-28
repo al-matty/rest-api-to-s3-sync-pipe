@@ -1,13 +1,13 @@
 with staging as (
-    select * from {{ ref('stg_amplitude_events') }}
+    select * from {{ ref('stg_amplitude__events') }}
 ),
 
 ip_addresses as (
-    select * from {{ ref('int_ip_addresses') }}
+    select * from {{ ref('int_amplitude__ip_addresses') }}
 ),
 
 companies as (
-    select * from {{ ref('int_companies') }}
+    select * from {{ ref('int_amplitude__companies') }}
 ),
 
 ranked_users as (

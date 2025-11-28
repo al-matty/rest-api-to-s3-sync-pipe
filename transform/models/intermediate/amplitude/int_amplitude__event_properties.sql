@@ -1,5 +1,5 @@
 with staging as (
-    select * from {{ ref('stg_amplitude_events') }}
+    select * from {{ ref('stg_amplitude__events') }}
 ),
 
 distinct_props as (

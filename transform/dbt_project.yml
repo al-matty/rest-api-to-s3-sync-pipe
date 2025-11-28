@@ -43,6 +43,7 @@ models:
     intermediate:
       +materialized: table
       +schema: silver
-      int_events:
-        +materialized: incremental
-        +unique_key: event_id
+      amplitude:
+        int_amplitude__events:
+          +materialized: incremental
+          +unique_key: event_id

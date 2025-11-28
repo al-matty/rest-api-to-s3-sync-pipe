@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: stg_amplitude_events
+  - name: stg_amplitude__events
     description: |
       Staging model for Amplitude event data. Parses JSON from raw table
       into typed columns. No transformations applied - maintains 1:1
