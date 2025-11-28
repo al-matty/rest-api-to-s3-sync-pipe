@@ -16,8 +16,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('int_amplitude__sessions')
-              field: session_id
+              arguments:
+                to: ref('int_amplitude__sessions')
+                field: session_id
       - name: session_id_raw
         description: "{{ doc('session_id_raw') }}"
       - name: amplitude_id
@@ -25,14 +26,16 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('int_amplitude__users')
-              field: amplitude_id
+              arguments:
+                to: ref('int_amplitude__users')
+                field: amplitude_id
       - name: ip_address_id
         description: "{{ doc('ip_address_id') }}"
         tests:
           - relationships:
-              to: ref('int_amplitude__ip_addresses')
-              field: ip_address_id
+              arguments:
+                to: ref('int_amplitude__ip_addresses')
+                field: ip_address_id
       - name: event_time
         description: "{{ doc('event_time') }}"
         tests:
@@ -47,8 +50,9 @@ models:
         description: "{{ doc('event_properties_id') }}"
         tests:
           - relationships:
-              to: ref('int_amplitude__event_properties')
-              field: event_properties_id
+              arguments:
+                to: ref('int_amplitude__event_properties')
+                field: event_properties_id
       - name: company_name
         description: "{{ doc('company_name') }}"
       - name: uuid
@@ -73,8 +77,9 @@ models:
         description: "{{ doc('ip_address_id') }}"
         tests:
           - relationships:
-              to: ref('int_amplitude__ip_addresses')
-              field: ip_address_id
+              arguments:
+                to: ref('int_amplitude__ip_addresses')
+                field: ip_address_id
       - name: company
         description: "{{ doc('company') }}"
       - name: last_seen
@@ -99,8 +104,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('int_amplitude__users')
-              field: amplitude_id
+              arguments:
+                to: ref('int_amplitude__users')
+                field: amplitude_id
       - name: user_id
         description: "{{ doc('user_id') }}"
       - name: device_id
