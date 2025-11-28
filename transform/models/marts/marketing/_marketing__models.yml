@@ -3,7 +3,7 @@ version: 2
 models:
   - name: mart_mailchimp__campaign_performance
     description: >
-      Campaign performance metrics answering key marketing questions:
+      Campaign performance metrics answering marketing questions:
       1) Are users clicking emails multiple times?
       2) What percentage of recipients click?
       3) Which topics (subjects) lead to most clicks?
@@ -37,3 +37,42 @@ models:
         description: Distinct users who opened
       - name: open_rate
         description: Percentage of recipients who opened
+
+  - name: mart_email_to_web__users
+    description: >
+      User-level model joining Mailchimp subscribers with Amplitude website users.
+      Enables funnel analysis: email subscriber -> email clicker -> website visitor.
+    columns:
+      - name: subscriber_hash
+        description: Mailchimp subscriber ID (MD5 of email)
+        data_tests:
+          - unique
+          - not_null
+      - name: email_address
+        description: Subscriber email (join key to Amplitude user_id)
+      - name: full_name
+        description: Subscriber name from Mailchimp
+      - name: mailchimp_company
+        description: Company from Mailchimp merge fields
+      - name: is_subscribed
+        description: Currently subscribed (status = 'subscribed')
+      - name: subscribed_at
+        description: When subscriber opted in
+      - name: campaigns_clicked
+        description: Number of distinct campaigns user clicked
+      - name: total_email_clicks
+        description: Total click count across all campaigns
+      - name: first_click_campaign_date
+        description: Date of earliest campaign clicked
+      - name: last_click_campaign_date
+        description: Date of most recent campaign clicked
+      - name: has_website_activity
+        description: True if user found in Amplitude data
+      - name: amplitude_id
+        description: Amplitude user ID (if matched)
+      - name: last_website_visit
+        description: Most recent website activity from Amplitude
+      - name: amplitude_company
+        description: Company derived from Amplitude data
+      - name: funnel_stage
+        description: "User classification: no_clicks, clicked_no_website, clicked_and_visited"
