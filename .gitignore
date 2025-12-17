@@ -28,3 +28,6 @@ transform/dbt_packages/
 transform/logs/
 transform/.user.yml
 transform/profiles.yml
+
+# local-only dbt files
+transform/analyses/
